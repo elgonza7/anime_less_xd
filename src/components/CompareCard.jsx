@@ -78,7 +78,7 @@ export default function CompareCard({
           }`}
         >
           {statIcon}{" "}
-          {alwaysShowStat && !revealed ? staticStat : <AnimatedNumber value={value} active={revealed} decimals={statDecimals} />}
+          {alwaysShowStat ? staticStat : <AnimatedNumber value={value} active={revealed} decimals={statDecimals} />}
           {statUnit}
         </p>
       </div>

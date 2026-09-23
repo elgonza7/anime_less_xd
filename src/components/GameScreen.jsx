@@ -8,6 +8,7 @@ import { playCorrect, playWrong, playCategoryComplete } from "../game/sounds";
 
 const REVEAL_DELAY_MS = 1400;
 const RECAP_DELAY_MS = 2200;
+const CARD_SIZE_CLASSES = "h-[min(70vh,36rem)] w-full sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)]";
 
 export default function GameScreen({ game, onFinished }) {
   const { category, phase } = game;
@@ -85,7 +86,14 @@ export default function GameScreen({ game, onFinished }) {
   }
 
   const revealed = phase === "revealed";
-  const isLoading = phase === "intro" || phase === "loading" || phase === "finished" || !game.round;
+  const showFullSpinner = !game.round;
+
+  // mientras se busca el desafiante nuevo, el de la izquierda no desaparece:
+  // si veniamos de una ronda anterior, el que ERA de la derecha (ya conocido)
+  // ya se muestra de una en la posicion izquierda -- eso es lo que dispara el
+  // slide, sin esperar a que termine de cargar el nuevo de la derecha.
+  const leftEntry = game.round ? (phase === "loading" ? game.round.right : game.round.left) : null;
+  const rightEntry = game.round && phase !== "loading" ? game.round.right : null;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col items-center gap-8">
@@ -111,8 +119,8 @@ export default function GameScreen({ game, onFinished }) {
 
       <ProgressDots total={ROUNDS_PER_CATEGORY} current={game.roundNumber - (revealed ? 0 : 1)} />
 
-      {isLoading ? (
-        <div className="flex h-[min(70vh,36rem)] items-center justify-center sm:h-[min(85vh,54rem)]">
+      {showFullSpinner ? (
+        <div className={`flex items-center justify-center ${CARD_SIZE_CLASSES}`}>
           <motion.span
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -124,25 +132,39 @@ export default function GameScreen({ game, onFinished }) {
       ) : (
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-8">
           <CompareCard
-            key={game.round.left.itemKey}
+            key={leftEntry.itemKey}
             side="left"
-            {...game.round.left}
+            layout
+            {...leftEntry}
             revealed={revealed}
-            disabled={revealed}
+            disabled={revealed || !rightEntry}
             alwaysShowStat={game.roundNumber > 1}
-            isWinner={revealed && game.round.left.value >= game.round.right.value}
+            isWinner={revealed && rightEntry && leftEntry.value >= rightEntry.value}
             onClick={game.choose}
           />
           <span className="rounded-full bg-panel px-5 py-2.5 text-base font-black shadow">OR</span>
-          <CompareCard
-            key={game.round.right.itemKey}
-            side="right"
-            {...game.round.right}
-            revealed={revealed}
-            disabled={revealed}
-            isWinner={revealed && game.round.right.value >= game.round.left.value}
-            onClick={game.choose}
-          />
+          {rightEntry ? (
+            <CompareCard
+              key={rightEntry.itemKey}
+              side="right"
+              layout
+              {...rightEntry}
+              revealed={revealed}
+              disabled={revealed}
+              isWinner={revealed && leftEntry.value <= rightEntry.value}
+              onClick={game.choose}
+            />
+          ) : (
+            <div className={`flex items-center justify-center rounded-3xl border-2 border-panel-border bg-panel ${CARD_SIZE_CLASSES}`}>
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="text-5xl opacity-50"
+              >
+                {category.icon}
+              </motion.span>
+            </div>
+          )}
         </div>
       )}
     </div>
