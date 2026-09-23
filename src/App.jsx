@@ -89,7 +89,6 @@ function App() {
                 score={finishedScore}
                 user={user}
                 onSaved={() => setAlreadyPlayedToday(true)}
-                onPlayAgain={goHome}
                 onGoToLeaderboard={() => setView("leaderboard")}
               />
             </motion.div>

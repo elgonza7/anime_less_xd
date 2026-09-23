@@ -1,16 +1,17 @@
-// lista curada de animes conocidos. se resuelven en vivo contra Jikan
-// (score, members, imagen) asi no hardcodeamos mal_id a mano y arriesgamos
-// mandar un id equivocado.
+// lista curada y CHICA a proposito: menos titulos = menos repeticion rara,
+// menos carga a jikan, y mas facil de mantener el fallback offline al dia.
+// se resuelven en vivo contra jikan (score, members, imagen) asi no
+// hardcodeamos mal_id a mano y arriesgamos mandar un id equivocado. los
+// titulos usan el nombre oficial completo para que la busqueda de jikan no
+// matchee por error una pelicula/spin-off en vez de la serie principal.
 export const ANIME_TITLES_SEED = [
   "Attack on Titan",
   "Death Note",
   "Naruto",
-  "Naruto Shippuden",
   "Fullmetal Alchemist: Brotherhood",
   "One Punch Man",
-  "Demon Slayer",
+  "Demon Slayer: Kimetsu no Yaiba",
   "Jujutsu Kaisen",
-  "Mushoku Tensei",
   "Bleach",
   "My Hero Academia",
   "Steins;Gate",
@@ -20,16 +21,8 @@ export const ANIME_TITLES_SEED = [
   "Vinland Saga",
   "Spy x Family",
   "Chainsaw Man",
-  "Tokyo Ghoul",
-  "Violet Evergarden",
-  "Made in Abyss",
   "Cowboy Bebop",
-  "Re:Zero",
   "Sword Art Online",
-  "Fairy Tail",
   "Dragon Ball Z",
-  "Mob Psycho 100",
-  "The Promised Neverland",
-  "Fruits Basket",
   "Haikyuu",
 ];

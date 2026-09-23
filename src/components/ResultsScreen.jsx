@@ -5,9 +5,10 @@ import { submitScore, AlreadyPlayedTodayError } from "../services/leaderboardSer
 import { playFinale } from "../game/sounds";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
+const AUTO_REDIRECT_MS = 3500;
 
-export default function ResultsScreen({ score, user, onSaved, onPlayAgain, onGoToLeaderboard }) {
-  const [saveState, setSaveState] = useState("saving"); // saving | saved | already-played | error
+export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard }) {
+  const [saveState, setSaveState] = useState(user ? "saving" : "no-account");
   const alreadySubmitted = useRef(false);
 
   useEffect(() => {
@@ -34,6 +35,14 @@ export default function ResultsScreen({ score, user, onSaved, onPlayAgain, onGoT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, score]);
 
+  // apenas termina de guardar (o falla), directo al leaderboard. no hay
+  // "jugar de nuevo": es un intento por dia, no tiene sentido ofrecerlo.
+  useEffect(() => {
+    if (saveState === "saving") return;
+    const timer = setTimeout(onGoToLeaderboard, AUTO_REDIRECT_MS);
+    return () => clearTimeout(timer);
+  }, [saveState, onGoToLeaderboard]);
+
   const pct = Math.round((score / MAX_SCORE) * 100);
   const emoji = pct >= 80 ? "🔥" : pct >= 50 ? "🙂" : "💀";
 
@@ -58,31 +67,26 @@ export default function ResultsScreen({ score, user, onSaved, onPlayAgain, onGoT
         transition={{ delay: 0.3 }}
         className="text-3xl font-bold"
       >
-        You scored {score}/{MAX_SCORE}
+        Thanks for playing AnimeLess!
       </motion.h2>
+      <p className="text-xl font-semibold opacity-90">
+        You scored {score}/{MAX_SCORE}
+      </p>
 
       {user ? (
         <p className="text-sm opacity-70">
           {saveState === "saving" && "Saving score..."}
-          {saveState === "saved" && "Score saved to your account ✅"}
-          {saveState === "already-played" && "You already played today — come back tomorrow for another try!"}
-          {saveState === "error" && "Couldn't save your score, but the game still counts for fun 🙂"}
+          {saveState === "saved" && "Score saved to today's leaderboard ✅"}
+          {saveState === "already-played" && "You already played today — this run doesn't count, come back tomorrow!"}
+          {saveState === "error" && "Couldn't save your score, but thanks for playing anyway 🙂"}
         </p>
       ) : (
-        <p className="text-sm opacity-70">Sign in with Google so this score counts on the leaderboard.</p>
+        <p className="text-sm opacity-70">Sign in with Google next time so your score counts on the leaderboard.</p>
       )}
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="flex flex-wrap justify-center gap-3"
-      >
-        <button onClick={onPlayAgain} className="rounded-full bg-violet-600 px-5 py-2 font-bold text-white hover:bg-violet-500">
-          Play again
-        </button>
-        <button onClick={onGoToLeaderboard} className="rounded-full bg-panel px-5 py-2 font-bold hover:bg-panel-border">
-          View leaderboard
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+        <button onClick={onGoToLeaderboard} className="rounded-full bg-violet-600 px-6 py-3 font-bold text-white hover:bg-violet-500">
+          View leaderboard →
         </button>
       </motion.div>
     </motion.div>

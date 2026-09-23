@@ -124,15 +124,18 @@ export default function GameScreen({ game, onFinished }) {
       ) : (
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-8">
           <CompareCard
+            key={game.round.left.itemKey}
             side="left"
             {...game.round.left}
             revealed={revealed}
             disabled={revealed}
+            alwaysShowStat={game.roundNumber > 1}
             isWinner={revealed && game.round.left.value >= game.round.right.value}
             onClick={game.choose}
           />
           <span className="rounded-full bg-panel px-5 py-2.5 text-base font-black shadow">OR</span>
           <CompareCard
+            key={game.round.right.itemKey}
             side="right"
             {...game.round.right}
             revealed={revealed}

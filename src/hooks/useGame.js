@@ -1,22 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 import { CATEGORIES, ROUNDS_PER_CATEGORY } from "../game/categories";
-import {
-  buildRatingRound,
-  buildFandomRound,
-  buildOpeningRound,
-  buildEpisodeRound,
-  EpisodesNotReadyError,
-} from "../game/roundBuilders";
-
-const BUILDERS = {
-  rating: buildRatingRound,
-  fandom: buildFandomRound,
-  opening: buildOpeningRound,
-  episode: buildEpisodeRound,
-};
+import { ENTRY_FETCHERS, EpisodesNotReadyError } from "../game/roundBuilders";
 
 // un solo "run" que recorre las 4 categorias en orden, sumando puntos en todas,
 // sin botones intermedios: todo avanza solo, el jugador solo tiene que elegir.
+//
+// mecanica tipo "higher or lower": el de la derecha (ya revelado) pasa a ser
+// el de la izquierda de la ronda siguiente, y entra un desafiante nuevo a la
+// derecha. asi cada ronda nueva solo necesita UN fetch, no dos.
+//
 // fases: intro -> loading -> ready -> revealed -> (loop) -> category-recap -> intro (siguiente) -> ... -> finished
 export function useGame() {
   const [categoryIndex, setCategoryIndex] = useState(0);
@@ -33,15 +25,24 @@ export function useGame() {
   const loadingRef = useRef(false); // evita cargas duplicadas (doble-render en dev, dobles clicks, etc.)
   const category = CATEGORIES[categoryIndex];
 
-  const loadRound = useCallback(async (catId) => {
+  const loadRound = useCallback(async (catId, carryLeft) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setPhase("loading");
     setErrorMessage(null);
     try {
-      const built = await BUILDERS[catId](usedKeysRef.current);
-      built.usedKeys.forEach((k) => usedKeysRef.current.add(k));
-      setRound(built);
+      const fetchEntry = ENTRY_FETCHERS[catId];
+
+      let left = carryLeft;
+      if (!left) {
+        left = await fetchEntry(usedKeysRef.current);
+        usedKeysRef.current.add(left.itemKey);
+      }
+
+      const right = await fetchEntry(usedKeysRef.current);
+      usedKeysRef.current.add(right.itemKey);
+
+      setRound({ left, right });
       setPhase("ready");
     } catch (err) {
       if (err instanceof EpisodesNotReadyError) {
@@ -71,6 +72,7 @@ export function useGame() {
     setCategoryIndex((i) => i + 1);
     setRoundNumber(1);
     setCategoryScore(0);
+    setRound(null);
     usedKeysRef.current = new Set();
     setPhase("intro");
   }, []);
@@ -80,6 +82,7 @@ export function useGame() {
     setRoundNumber(1);
     setTotalScore(0);
     setCategoryScore(0);
+    setRound(null);
     usedKeysRef.current = new Set();
     setSkipNotice(null);
     setPhase("intro");
@@ -106,7 +109,7 @@ export function useGame() {
     [phase, round]
   );
 
-  // se llama sola (con un timer en GameScreen) despues de mostrar el resultado de la ronda
+  // el de la derecha (ya revelado) se convierte en el nuevo "campeon" de la izquierda
   const advanceRound = useCallback(() => {
     setSkipNotice(null);
     if (roundNumber >= ROUNDS_PER_CATEGORY) {
@@ -114,10 +117,15 @@ export function useGame() {
       return;
     }
     setRoundNumber((n) => n + 1);
-    loadRound(category.id);
-  }, [roundNumber, category, loadRound, goToRecapOrFinish]);
+    loadRound(category.id, round?.right);
+  }, [roundNumber, category, loadRound, goToRecapOrFinish, round]);
 
-  const retryRound = useCallback(() => loadRound(category.id), [category, loadRound]);
+  // en un retry despues de error, si ya habia una izquierda "campeona" la
+  // mantenemos (round todavia tiene los datos de la ultima ronda que si cargo).
+  const retryRound = useCallback(
+    () => loadRound(category.id, roundNumber > 1 ? round?.right : undefined),
+    [category, loadRound, roundNumber, round]
+  );
 
   const skipCategory = useCallback(() => goToRecapOrFinish(category.id), [category, goToRecapOrFinish]);
 

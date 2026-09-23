@@ -5,12 +5,11 @@ import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from
 import { ANIME_TITLES_SEED } from "../data/animeTitlesSeed";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
 import { OPENINGS_CATALOG } from "../data/openingsCatalog";
-import { pickTwoDistinct } from "./utils";
 
 export class EpisodesNotReadyError extends Error {}
 
 // jikan (la api de MAL) a veces se cae para un titulo puntual pero anda bien para el
-// resto. en vez de reventar toda la ronda, probamos con otro anime del pool.
+// resto. en vez de reventar la ronda, probamos con otro anime del pool.
 async function pickWorkingAnime(candidateTitles) {
   const pool = [...candidateTitles];
   while (pool.length > 0) {
@@ -26,112 +25,93 @@ async function pickWorkingAnime(candidateTitles) {
   return null;
 }
 
-async function pickAnimePair(usedTitles) {
-  const pool = ANIME_TITLES_SEED.filter((t) => !usedTitles.has(t));
-  const basePool = pool.length >= 2 ? pool : [...ANIME_TITLES_SEED];
-
-  const first = await pickWorkingAnime(basePool);
-  if (!first) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
-
-  const secondPool = basePool.filter((t) => t !== first.seedTitle);
-  const second = await pickWorkingAnime(
-    secondPool.length > 0 ? secondPool : ANIME_TITLES_SEED.filter((t) => t !== first.seedTitle)
-  );
-  if (!second) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
-
-  return [first, second];
+function unusedPool(fullList, usedKeys) {
+  const pool = fullList.filter((t) => !usedKeys.has(t));
+  return pool.length > 0 ? pool : fullList;
 }
 
-export async function buildRatingRound(usedTitles) {
-  const [a, b] = await pickAnimePair(usedTitles);
+// --- cada fetcher trae UNA sola entrada nueva, no un par. el "juego de las
+// cadenas" (el ganador se queda a la izquierda, entra un desafiante nuevo a
+// la derecha) lo maneja useGame, no esto. ---
 
+export async function fetchRatingEntry(usedKeys) {
+  const picked = await pickWorkingAnime(unusedPool(ANIME_TITLES_SEED, usedKeys));
+  if (!picked) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
   return {
-    usedKeys: [a.seedTitle, b.seedTitle],
-    left: { label: a.data.title, imageUrl: a.data.imageUrl, value: a.data.score ?? 0, statIcon: "⭐", statDecimals: 2 },
-    right: { label: b.data.title, imageUrl: b.data.imageUrl, value: b.data.score ?? 0, statIcon: "⭐", statDecimals: 2 },
+    itemKey: picked.seedTitle,
+    label: picked.data.title,
+    imageUrl: picked.data.imageUrl,
+    value: picked.data.score ?? 0,
+    statIcon: "⭐",
+    statDecimals: 2,
   };
 }
 
-export async function buildFandomRound(usedTitles) {
-  const [a, b] = await pickAnimePair(usedTitles);
-
+export async function fetchFandomEntry(usedKeys) {
+  const picked = await pickWorkingAnime(unusedPool(ANIME_TITLES_SEED, usedKeys));
+  if (!picked) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
   return {
-    usedKeys: [a.seedTitle, b.seedTitle],
-    left: {
-      label: a.data.title,
-      imageUrl: a.data.imageUrl,
-      value: a.data.members ?? 0,
-      statIcon: "👥",
-      statUnit: " members",
-    },
-    right: {
-      label: b.data.title,
-      imageUrl: b.data.imageUrl,
-      value: b.data.members ?? 0,
-      statIcon: "👥",
-      statUnit: " members",
-    },
+    itemKey: picked.seedTitle,
+    label: picked.data.title,
+    imageUrl: picked.data.imageUrl,
+    value: picked.data.members ?? 0,
+    statIcon: "👥",
+    statUnit: " members",
   };
 }
 
-export async function buildOpeningRound(usedKeys) {
-  const pool = OPENINGS_CATALOG.filter((o) => !usedKeys.has(o.key));
-  const [catalogA, catalogB] = pickTwoDistinct(pool.length >= 2 ? pool : OPENINGS_CATALOG);
+export async function fetchOpeningEntry(usedKeys) {
+  const pool = unusedPool(OPENINGS_CATALOG, usedKeys).filter((o) => !usedKeys.has(o.key));
+  const list = pool.length > 0 ? pool : OPENINGS_CATALOG;
+  const catalogEntry = list[Math.floor(Math.random() * list.length)];
 
   // resolveOpening solo pega a youtube "search" (caro) la primera vez que se
   // pide ese opening puntual; despues queda cacheado en Firestore para siempre.
-  const [opA, opB] = await Promise.all([resolveOpening(catalogA), resolveOpening(catalogB)]);
-  const [statsA, statsB] = await Promise.all([fetchVideoStats(opA.videoId), fetchVideoStats(opB.videoId)]);
+  const opening = await resolveOpening(catalogEntry);
+  const stats = await fetchVideoStats(opening.videoId);
 
   return {
-    usedKeys: [catalogA.key, catalogB.key],
-    left: {
-      label: `${opA.anime} — ${opA.opening}`,
-      imageUrl: statsA.thumbnail,
-      value: statsA.viewCount,
-      statIcon: "▶️",
-      statUnit: " views",
-    },
-    right: {
-      label: `${opB.anime} — ${opB.opening}`,
-      imageUrl: statsB.thumbnail,
-      value: statsB.viewCount,
-      statIcon: "▶️",
-      statUnit: " views",
-    },
+    itemKey: catalogEntry.key,
+    label: `${opening.anime} — ${opening.opening}`,
+    imageUrl: stats.thumbnail,
+    value: stats.viewCount,
+    statIcon: "▶️",
+    statUnit: " views",
   };
 }
 
-async function buildEpisodeSide() {
-  const entry = pickRandomAnimeWithEpisodes();
-  const data = await fetchEpisodesFor(entry);
-  if (!data || !data.episodes?.length) {
-    throw new EpisodesNotReadyError(`No episode data yet for "${entry.anime}".`);
-  }
+export async function fetchEpisodeEntry(usedKeys) {
+  if (ANIME_IMDB_SEED.length < 1) throw new EpisodesNotReadyError("No anime configured with an IMDb tconst yet.");
 
-  const episode = pickRandomEpisode(data.episodes);
-  const animeInfo = await fetchAnimeByTitle(entry.anime).catch(() => null);
-
-  return {
-    key: episode.tconst,
-    label: `${entry.anime} — S${episode.season}E${episode.episode}`,
-    imageUrl: animeInfo?.imageUrl,
-    value: episode.rating,
-    statIcon: "⭐",
-    statDecimals: 1,
-  };
-}
-
-export async function buildEpisodeRound(usedKeys) {
-  if (ANIME_IMDB_SEED.length < 2) throw new EpisodesNotReadyError("No anime configured with an IMDb tconst yet.");
-
-  let left = await buildEpisodeSide();
-  let right = await buildEpisodeSide();
   let attempts = 0;
-  while ((left.key === right.key || usedKeys.has(left.key) || usedKeys.has(right.key)) && attempts < 10) {
-    right = await buildEpisodeSide();
+  while (attempts < 12) {
     attempts += 1;
-  }
+    const entry = pickRandomAnimeWithEpisodes();
+    const data = await fetchEpisodesFor(entry);
+    if (!data || !data.episodes?.length) {
+      if (attempts >= 12) throw new EpisodesNotReadyError(`No episode data yet for "${entry.anime}".`);
+      continue;
+    }
 
-  return { usedKeys: [left.key, right.key], left, right };
+    const episode = pickRandomEpisode(data.episodes);
+    if (usedKeys.has(episode.tconst)) continue;
+
+    const animeInfo = await fetchAnimeByTitle(entry.anime).catch(() => null);
+    return {
+      itemKey: episode.tconst,
+      label: `${entry.anime} — S${episode.season}E${episode.episode}`,
+      imageUrl: animeInfo?.imageUrl,
+      value: episode.rating,
+      statIcon: "⭐",
+      statDecimals: 1,
+    };
+  }
+  throw new EpisodesNotReadyError("Couldn't find a fresh episode to compare.");
 }
+
+export const ENTRY_FETCHERS = {
+  rating: fetchRatingEntry,
+  fandom: fetchFandomEntry,
+  opening: fetchOpeningEntry,
+  episode: fetchEpisodeEntry,
+};

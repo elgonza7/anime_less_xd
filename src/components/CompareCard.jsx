@@ -13,6 +13,7 @@ export default function CompareCard({
   isWinner,
   disabled,
   onClick,
+  alwaysShowStat = false,
 }) {
   const borderClass = !revealed
     ? "border-panel-border hover:border-violet-500"
@@ -20,16 +21,22 @@ export default function CompareCard({
       ? "border-emerald-500"
       : "border-panel-border opacity-60";
 
+  const showStat = revealed || alwaysShowStat;
+  const staticStat = value.toLocaleString("en-US", {
+    minimumFractionDigits: statDecimals,
+    maximumFractionDigits: statDecimals,
+  });
+
   return (
     <motion.button
       type="button"
       disabled={disabled}
       onClick={() => onClick(side)}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: side === "left" ? -50 : 50 }}
+      animate={{ opacity: 1, x: 0 }}
       whileHover={!disabled ? { scale: 1.015 } : {}}
       whileTap={!disabled ? { scale: 0.985 } : {}}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className={`group relative h-[min(70vh,36rem)] w-full overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)] ${borderClass} ${
         disabled ? "cursor-default" : "cursor-pointer"
       }`}
@@ -63,11 +70,12 @@ export default function CompareCard({
       <div className="absolute inset-x-0 bottom-0 space-y-2 p-6">
         <p className="text-2xl font-black leading-tight text-white drop-shadow sm:text-4xl">{label}</p>
         <p
-          className={`text-xl font-bold transition-opacity sm:text-2xl ${revealed ? "opacity-100" : "opacity-0"} ${
+          className={`text-xl font-bold transition-opacity sm:text-2xl ${showStat ? "opacity-100" : "opacity-0"} ${
             revealed && isWinner ? "text-emerald-400" : "text-white/70"
           }`}
         >
-          {statIcon} <AnimatedNumber value={value} active={revealed} decimals={statDecimals} />
+          {statIcon}{" "}
+          {alwaysShowStat && !revealed ? staticStat : <AnimatedNumber value={value} active={revealed} decimals={statDecimals} />}
           {statUnit}
         </p>
       </div>
