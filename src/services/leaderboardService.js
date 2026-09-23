@@ -14,14 +14,24 @@ export async function submitScore(user, score) {
   if (!firebaseReady || !user) return;
 
   const idToken = await user.getIdToken();
-  const res = await fetch("/api/submit-score", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-    body: JSON.stringify({ score }),
-  });
+  let res;
+  try {
+    res = await fetch("/api/submit-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ score }),
+    });
+  } catch (err) {
+    console.error("submit-score: fetch fallo (red/CORS/etc):", err);
+    throw new Error(`No se pudo contactar al servidor: ${err.message}`);
+  }
 
   if (res.status === 409) throw new AlreadyPlayedTodayError("You already have a saved score for today.");
-  if (!res.ok) throw new Error(`No se pudo guardar el puntaje (${res.status})`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    console.error("submit-score fallo:", res.status, body);
+    throw new Error(`No se pudo guardar el puntaje (${res.status}: ${body?.error || "?"} ${body?.detail || ""})`);
+  }
 }
 
 // chequea si YA se jugo hoy -- por IP (funciona sin login) y por cuenta si

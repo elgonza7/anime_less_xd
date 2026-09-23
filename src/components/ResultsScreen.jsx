@@ -15,6 +15,7 @@ const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
 
 export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard }) {
   const [saveState, setSaveState] = useState(user ? "saving" : "no-account");
+  const [errorDetail, setErrorDetail] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null); // { top, myRank } | null
   const alreadySubmitted = useRef(false);
 
@@ -42,6 +43,7 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
           onSaved?.();
         } else {
           console.error("couldn't save score:", err);
+          setErrorDetail(err.message);
           setSaveState("error");
         }
       });
@@ -99,7 +101,13 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
           {saveState === "already-played" && "You already played today — this run doesn't count, come back tomorrow!"}
           {saveState === "error" && "Couldn't save your score, but thanks for playing anyway 🙂"}
         </p>
-      ) : (
+      ) : null}
+
+      {saveState === "error" && errorDetail && (
+        <p className="max-w-xs text-xs text-red-400/80">{errorDetail}</p>
+      )}
+
+      {!user && (
         <p className="text-sm opacity-70">Sign in with Google next time so your score counts on the leaderboard.</p>
       )}
 

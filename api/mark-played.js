@@ -6,28 +6,34 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getClientIp, hashIp, todayUTC, getFirebaseApp } from "./_lib/ip.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "method-not-allowed" });
-    return;
-  }
-
-  const app = getFirebaseApp();
-  const db = getFirestore(app);
-  const today = todayUTC();
-  const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
-
-  let uid = null;
-  const authHeader = req.headers.authorization || "";
-  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (idToken) {
-    try {
-      uid = (await getAuth(app).verifyIdToken(idToken)).uid;
-    } catch {
-      uid = null;
+  try {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "method-not-allowed" });
+      return;
     }
-  }
 
-  await db.collection("dailyIPs").doc(`${today}_${ipHash}`).set({ date: today, uid }, { merge: true });
-  res.status(200).json({ ok: true });
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+    const today = todayUTC();
+    const ip = getClientIp(req);
+    const ipHash = hashIp(ip);
+
+    let uid = null;
+    const authHeader = req.headers.authorization || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (idToken) {
+      try {
+        uid = (await getAuth(app).verifyIdToken(idToken)).uid;
+      } catch (err) {
+        console.warn("mark-played: verifyIdToken fallo, se marca como anonimo:", err.message);
+        uid = null;
+      }
+    }
+
+    await db.collection("dailyIPs").doc(`${today}_${ipHash}`).set({ date: today, uid }, { merge: true });
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("mark-played: error inesperado:", err);
+    res.status(500).json({ error: "internal-error", detail: err.message });
+  }
 }

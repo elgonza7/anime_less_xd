@@ -8,37 +8,43 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getClientIp, hashIp, todayUTC, getFirebaseApp } from "./_lib/ip.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "method-not-allowed" });
-    return;
-  }
-
-  const app = getFirebaseApp();
-  const db = getFirestore(app);
-  const today = todayUTC();
-
-  const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
-  const ipSnap = await db.collection("dailyIPs").doc(`${today}_${ipHash}`).get();
-  if (ipSnap.exists) {
-    res.status(200).json({ alreadyPlayed: true });
-    return;
-  }
-
-  const authHeader = req.headers.authorization || "";
-  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (idToken) {
-    try {
-      const decoded = await getAuth(app).verifyIdToken(idToken);
-      const scoreSnap = await db.collection("scores").doc(decoded.uid).get();
-      if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
-        res.status(200).json({ alreadyPlayed: true });
-        return;
-      }
-    } catch {
-      // token invalido/vencido -> lo tratamos como anonimo, ya chequeamos la IP arriba
+  try {
+    if (req.method !== "GET") {
+      res.status(405).json({ error: "method-not-allowed" });
+      return;
     }
-  }
 
-  res.status(200).json({ alreadyPlayed: false });
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+    const today = todayUTC();
+
+    const ip = getClientIp(req);
+    const ipHash = hashIp(ip);
+    const ipSnap = await db.collection("dailyIPs").doc(`${today}_${ipHash}`).get();
+    if (ipSnap.exists) {
+      res.status(200).json({ alreadyPlayed: true });
+      return;
+    }
+
+    const authHeader = req.headers.authorization || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (idToken) {
+      try {
+        const decoded = await getAuth(app).verifyIdToken(idToken);
+        const scoreSnap = await db.collection("scores").doc(decoded.uid).get();
+        if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
+          res.status(200).json({ alreadyPlayed: true });
+          return;
+        }
+      } catch (err) {
+        console.warn("game-status: verifyIdToken fallo, se trata como anonimo:", err.message);
+      }
+    }
+
+    res.status(200).json({ alreadyPlayed: false });
+  } catch (err) {
+    console.error("game-status: error inesperado:", err);
+    // si el chequeo se rompe, dejamos jugar en vez de bloquear a todo el mundo
+    res.status(200).json({ alreadyPlayed: false, error: "internal-error", detail: err.message });
+  }
 }

@@ -18,64 +18,70 @@ const ROUNDS_PER_CATEGORY = 5;
 const MAX_SCORE = CATEGORIES_COUNT * ROUNDS_PER_CATEGORY;
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "method-not-allowed" });
-    return;
-  }
-
-  const authHeader = req.headers.authorization || "";
-  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!idToken) {
-    res.status(401).json({ error: "missing-token" });
-    return;
-  }
-
-  const { score } = req.body || {};
-  if (typeof score !== "number" || score < 0 || score > MAX_SCORE || !Number.isInteger(score)) {
-    res.status(400).json({ error: "invalid-score" });
-    return;
-  }
-
-  const app = getFirebaseApp();
-  const db = getFirestore(app);
-
-  let decoded;
   try {
-    decoded = await getAuth(app).verifyIdToken(idToken);
-  } catch {
-    res.status(401).json({ error: "invalid-token" });
-    return;
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "method-not-allowed" });
+      return;
+    }
+
+    const authHeader = req.headers.authorization || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!idToken) {
+      res.status(401).json({ error: "missing-token" });
+      return;
+    }
+
+    const { score } = req.body || {};
+    if (typeof score !== "number" || score < 0 || score > MAX_SCORE || !Number.isInteger(score)) {
+      res.status(400).json({ error: "invalid-score" });
+      return;
+    }
+
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+
+    let decoded;
+    try {
+      decoded = await getAuth(app).verifyIdToken(idToken);
+    } catch (err) {
+      console.error("submit-score: verifyIdToken fallo:", err.message);
+      res.status(401).json({ error: "invalid-token", detail: err.message });
+      return;
+    }
+
+    const uid = decoded.uid;
+    const today = todayUTC();
+
+    const scoreRef = db.collection("scores").doc(uid);
+    const scoreSnap = await scoreRef.get();
+    if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
+      res.status(409).json({ error: "already-played-today" });
+      return;
+    }
+
+    const ip = getClientIp(req);
+    const ipHash = hashIp(ip);
+    const ipRef = db.collection("dailyIPs").doc(`${today}_${ipHash}`);
+    const ipSnap = await ipRef.get();
+    if (ipSnap.exists && ipSnap.data().uid !== uid) {
+      res.status(409).json({ error: "already-played-today" });
+      return;
+    }
+
+    await scoreRef.set(
+      {
+        displayName: decoded.name || "Anonymous",
+        photoURL: decoded.picture || null,
+        totalPoints: score,
+        lastPlayedDate: today,
+      },
+      { merge: true }
+    );
+    await ipRef.set({ uid, date: today });
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("submit-score: error inesperado:", err);
+    res.status(500).json({ error: "internal-error", detail: err.message });
   }
-
-  const uid = decoded.uid;
-  const today = todayUTC();
-
-  const scoreRef = db.collection("scores").doc(uid);
-  const scoreSnap = await scoreRef.get();
-  if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
-    res.status(409).json({ error: "already-played-today" });
-    return;
-  }
-
-  const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
-  const ipRef = db.collection("dailyIPs").doc(`${today}_${ipHash}`);
-  const ipSnap = await ipRef.get();
-  if (ipSnap.exists && ipSnap.data().uid !== uid) {
-    res.status(409).json({ error: "already-played-today" });
-    return;
-  }
-
-  await scoreRef.set(
-    {
-      displayName: decoded.name || "Anonymous",
-      photoURL: decoded.picture || null,
-      totalPoints: score,
-      lastPlayedDate: today,
-    },
-    { merge: true }
-  );
-  await ipRef.set({ uid, date: today });
-
-  res.status(200).json({ ok: true });
 }
