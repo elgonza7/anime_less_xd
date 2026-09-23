@@ -1,6 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedNumber from "./AnimatedNumber";
 
+// mas chico que antes a proposito: que entre todo el juego en un viewport
+// tipico sin tener que scrollear para ver las tarjetas.
+export const CARD_SIZE_CLASSES = "h-[min(52vh,28rem)] w-full sm:h-[min(62vh,34rem)] sm:w-[min(32vw,24rem)]";
+
 export default function CompareCard({
   side,
   itemKey,
@@ -40,7 +44,7 @@ export default function CompareCard({
       whileHover={!disabled ? { scale: 1.015 } : {}}
       whileTap={!disabled ? { scale: 0.985 } : {}}
       transition={{ layout: { duration: 0.6, ease: "easeInOut" }, opacity: { duration: 0.25 } }}
-      className={`group relative h-[min(70vh,36rem)] w-full overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)] ${borderClass} ${
+      className={`group relative overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors ${CARD_SIZE_CLASSES} ${borderClass} ${
         disabled ? "cursor-default" : "cursor-pointer"
       }`}
     >
@@ -70,10 +74,10 @@ export default function CompareCard({
         )}
       </AnimatePresence>
 
-      <div className="absolute inset-x-0 bottom-0 space-y-2 p-6">
-        <p className="text-2xl font-black leading-tight text-white drop-shadow sm:text-4xl">{label}</p>
+      <div className="absolute inset-x-0 bottom-0 space-y-1.5 p-4">
+        <p className="text-lg font-black leading-tight text-white drop-shadow sm:text-2xl">{label}</p>
         <p
-          className={`text-xl font-bold transition-opacity sm:text-2xl ${showStat ? "opacity-100" : "opacity-0"} ${
+          className={`text-base font-bold transition-opacity sm:text-lg ${showStat ? "opacity-100" : "opacity-0"} ${
             revealed && isWinner ? "text-emerald-400" : "text-white/70"
           }`}
         >

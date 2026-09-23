@@ -5,6 +5,7 @@ import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from
 import { ANIME_TITLES_SEED } from "../data/animeTitlesSeed";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
 import { OPENINGS_CATALOG } from "../data/openingsCatalog";
+import { dailyRandomInt } from "./dailySeed";
 
 export class EpisodesNotReadyError extends Error {}
 
@@ -13,7 +14,7 @@ export class EpisodesNotReadyError extends Error {}
 async function pickWorkingAnime(candidateTitles) {
   const pool = [...candidateTitles];
   while (pool.length > 0) {
-    const idx = Math.floor(Math.random() * pool.length);
+    const idx = dailyRandomInt(pool.length);
     const seedTitle = pool.splice(idx, 1)[0];
     try {
       const data = await fetchAnimeByTitle(seedTitle);
@@ -63,7 +64,7 @@ export async function fetchFandomEntry(usedKeys) {
 export async function fetchOpeningEntry(usedKeys) {
   const pool = unusedPool(OPENINGS_CATALOG, usedKeys).filter((o) => !usedKeys.has(o.key));
   const list = pool.length > 0 ? pool : OPENINGS_CATALOG;
-  const catalogEntry = list[Math.floor(Math.random() * list.length)];
+  const catalogEntry = list[dailyRandomInt(list.length)];
 
   // resolveOpening solo pega a youtube "search" (caro) la primera vez que se
   // pide ese opening puntual; despues queda cacheado en Firestore para siempre.

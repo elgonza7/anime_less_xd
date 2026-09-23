@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import CompareCard from "./CompareCard";
+import CompareCard, { CARD_SIZE_CLASSES } from "./CompareCard";
 import ProgressDots from "./ProgressDots";
 import CategoryStepper from "./CategoryStepper";
 import { ROUNDS_PER_CATEGORY } from "../game/categories";
@@ -8,7 +8,6 @@ import { playCorrect, playWrong, playCategoryComplete } from "../game/sounds";
 
 const REVEAL_DELAY_MS = 1400;
 const RECAP_DELAY_MS = 2200;
-const CARD_SIZE_CLASSES = "h-[min(70vh,36rem)] w-full sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)]";
 
 export default function GameScreen({ game, onFinished }) {
   const { category, phase } = game;
@@ -96,7 +95,7 @@ export default function GameScreen({ game, onFinished }) {
   const rightEntry = game.round && phase !== "loading" ? game.round.right : null;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col items-center gap-8">
+    <div className="mx-auto flex max-w-6xl flex-col items-center gap-4">
       <CategoryStepper currentIndex={game.categoryIndex} />
 
       <AnimatePresence mode="wait">
@@ -109,11 +108,11 @@ export default function GameScreen({ game, onFinished }) {
           {game.skipNotice && (
             <p className="mb-3 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">{game.skipNotice}</p>
           )}
-          <h2 className="text-3xl font-black sm:text-4xl">{category.question}</h2>
-          <p className="mt-2 text-lg font-semibold opacity-70">
+          <h2 className="text-2xl font-black sm:text-3xl">{category.question}</h2>
+          <p className="mt-1 text-base font-semibold opacity-70">
             Round {game.roundNumber} of {ROUNDS_PER_CATEGORY}
           </p>
-          <p className="mt-1 text-sm opacity-50">Total score: {game.totalScore}</p>
+          <p className="text-xs opacity-50">Total score: {game.totalScore}</p>
         </motion.div>
       </AnimatePresence>
 
@@ -130,7 +129,7 @@ export default function GameScreen({ game, onFinished }) {
           </motion.span>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-8">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
           <CompareCard
             key={leftEntry.itemKey}
             side="left"
