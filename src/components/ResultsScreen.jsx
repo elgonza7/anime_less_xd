@@ -6,7 +6,7 @@ import { playFinale } from "../game/sounds";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
 
-export default function ResultsScreen({ score, user, onPlayAgain, onGoToLeaderboard }) {
+export default function ResultsScreen({ score, user, onSaved, onPlayAgain, onGoToLeaderboard }) {
   const [saveState, setSaveState] = useState("saving"); // saving | saved | already-played | error
   const alreadySubmitted = useRef(false);
 
@@ -18,15 +18,20 @@ export default function ResultsScreen({ score, user, onPlayAgain, onGoToLeaderbo
     if (!user || alreadySubmitted.current) return;
     alreadySubmitted.current = true;
     submitScore(user, score)
-      .then(() => setSaveState("saved"))
+      .then(() => {
+        setSaveState("saved");
+        onSaved?.();
+      })
       .catch((err) => {
         if (err instanceof AlreadyPlayedTodayError) {
           setSaveState("already-played");
+          onSaved?.();
         } else {
           console.error("couldn't save score:", err);
           setSaveState("error");
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, score]);
 
   const pct = Math.round((score / MAX_SCORE) * 100);

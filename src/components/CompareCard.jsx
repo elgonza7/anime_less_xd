@@ -30,7 +30,7 @@ export default function CompareCard({
       whileHover={!disabled ? { scale: 1.015 } : {}}
       whileTap={!disabled ? { scale: 0.985 } : {}}
       transition={{ duration: 0.25 }}
-      className={`group relative h-[28rem] w-full overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors sm:h-[40rem] sm:w-[28rem] ${borderClass} ${
+      className={`group relative h-[min(70vh,36rem)] w-full overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)] ${borderClass} ${
         disabled ? "cursor-default" : "cursor-pointer"
       }`}
     >
@@ -61,9 +61,9 @@ export default function CompareCard({
       </AnimatePresence>
 
       <div className="absolute inset-x-0 bottom-0 space-y-2 p-6">
-        <p className="text-2xl font-black leading-tight text-white drop-shadow sm:text-3xl">{label}</p>
+        <p className="text-2xl font-black leading-tight text-white drop-shadow sm:text-4xl">{label}</p>
         <p
-          className={`text-lg font-bold transition-opacity sm:text-xl ${revealed ? "opacity-100" : "opacity-0"} ${
+          className={`text-xl font-bold transition-opacity sm:text-2xl ${revealed ? "opacity-100" : "opacity-0"} ${
             revealed && isWinner ? "text-emerald-400" : "text-white/70"
           }`}
         >

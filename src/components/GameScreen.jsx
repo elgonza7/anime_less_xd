@@ -88,7 +88,7 @@ export default function GameScreen({ game, onFinished }) {
   const isLoading = phase === "intro" || phase === "loading" || phase === "finished" || !game.round;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col items-center gap-8">
+    <div className="mx-auto flex max-w-7xl flex-col items-center gap-8">
       <CategoryStepper currentIndex={game.categoryIndex} />
 
       <AnimatePresence mode="wait">
@@ -112,7 +112,7 @@ export default function GameScreen({ game, onFinished }) {
       <ProgressDots total={ROUNDS_PER_CATEGORY} current={game.roundNumber - (revealed ? 0 : 1)} />
 
       {isLoading ? (
-        <div className="flex h-96 items-center justify-center sm:h-[32rem]">
+        <div className="flex h-[min(70vh,36rem)] items-center justify-center sm:h-[min(85vh,54rem)]">
           <motion.span
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}

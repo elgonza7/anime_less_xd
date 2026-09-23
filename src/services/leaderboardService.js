@@ -5,6 +5,10 @@ const SCORES_COLLECTION = "scores";
 
 export class AlreadyPlayedTodayError extends Error {}
 
+function todayUTC() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 // el puntaje ya NO se escribe directo a firestore desde el cliente (mira
 // firestore.rules: scores solo se puede leer, nunca escribir desde el
 // browser). todo pasa por /api/submit-score, que valida el token, chequea
@@ -22,6 +26,16 @@ export async function submitScore(user, score) {
 
   if (res.status === 409) throw new AlreadyPlayedTodayError("You already have a saved score for today.");
   if (!res.ok) throw new Error(`No se pudo guardar el puntaje (${res.status})`);
+}
+
+// chequeo liviano para bloquear el juego ANTES de arrancar una ronda, no solo
+// al momento de guardar. lee directo de firestore (permitido, "scores" es de
+// lectura publica para usuarios logueados).
+export async function hasPlayedToday(uid) {
+  if (!firebaseReady || !uid) return false;
+  const snap = await getDoc(doc(db, SCORES_COLLECTION, uid));
+  if (!snap.exists()) return false;
+  return snap.data().lastPlayedDate === todayUTC();
 }
 
 export async function getTopScores(topN = 10) {
