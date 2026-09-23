@@ -10,27 +10,66 @@ export class EpisodesNotReadyError extends Error {}
 
 const fmt = (n) => (n || n === 0 ? n.toLocaleString("en-US") : "?");
 
-export async function buildRatingRound(usedTitles) {
+// jikan (la api de MAL) a veces se cae para un titulo puntual pero anda bien para el
+// resto. en vez de reventar toda la ronda, probamos con otro anime del pool.
+async function pickWorkingAnime(candidateTitles) {
+  const pool = [...candidateTitles];
+  while (pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const seedTitle = pool.splice(idx, 1)[0];
+    try {
+      const data = await fetchAnimeByTitle(seedTitle);
+      return { seedTitle, data };
+    } catch {
+      // probamos el siguiente
+    }
+  }
+  return null;
+}
+
+async function pickAnimePair(usedTitles) {
   const pool = ANIME_TITLES_SEED.filter((t) => !usedTitles.has(t));
-  const [titleA, titleB] = pickTwoDistinct(pool.length >= 2 ? pool : ANIME_TITLES_SEED);
-  const [a, b] = await Promise.all([fetchAnimeByTitle(titleA), fetchAnimeByTitle(titleB)]);
+  const basePool = pool.length >= 2 ? pool : [...ANIME_TITLES_SEED];
+
+  const first = await pickWorkingAnime(basePool);
+  if (!first) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
+
+  const secondPool = basePool.filter((t) => t !== first.seedTitle);
+  const second = await pickWorkingAnime(
+    secondPool.length > 0 ? secondPool : ANIME_TITLES_SEED.filter((t) => t !== first.seedTitle)
+  );
+  if (!second) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
+
+  return [first, second];
+}
+
+export async function buildRatingRound(usedTitles) {
+  const [a, b] = await pickAnimePair(usedTitles);
 
   return {
-    usedKeys: [titleA, titleB],
-    left: { label: a.title, subLabel: `⭐ ${fmt(a.score)}`, imageUrl: a.imageUrl, value: a.score ?? 0 },
-    right: { label: b.title, subLabel: `⭐ ${fmt(b.score)}`, imageUrl: b.imageUrl, value: b.score ?? 0 },
+    usedKeys: [a.seedTitle, b.seedTitle],
+    left: { label: a.data.title, subLabel: `⭐ ${fmt(a.data.score)}`, imageUrl: a.data.imageUrl, value: a.data.score ?? 0 },
+    right: { label: b.data.title, subLabel: `⭐ ${fmt(b.data.score)}`, imageUrl: b.data.imageUrl, value: b.data.score ?? 0 },
   };
 }
 
 export async function buildFandomRound(usedTitles) {
-  const pool = ANIME_TITLES_SEED.filter((t) => !usedTitles.has(t));
-  const [titleA, titleB] = pickTwoDistinct(pool.length >= 2 ? pool : ANIME_TITLES_SEED);
-  const [a, b] = await Promise.all([fetchAnimeByTitle(titleA), fetchAnimeByTitle(titleB)]);
+  const [a, b] = await pickAnimePair(usedTitles);
 
   return {
-    usedKeys: [titleA, titleB],
-    left: { label: a.title, subLabel: `👥 ${fmt(a.members)} members`, imageUrl: a.imageUrl, value: a.members ?? 0 },
-    right: { label: b.title, subLabel: `👥 ${fmt(b.members)} members`, imageUrl: b.imageUrl, value: b.members ?? 0 },
+    usedKeys: [a.seedTitle, b.seedTitle],
+    left: {
+      label: a.data.title,
+      subLabel: `👥 ${fmt(a.data.members)} members`,
+      imageUrl: a.data.imageUrl,
+      value: a.data.members ?? 0,
+    },
+    right: {
+      label: b.data.title,
+      subLabel: `👥 ${fmt(b.data.members)} members`,
+      imageUrl: b.data.imageUrl,
+      value: b.data.members ?? 0,
+    },
   };
 }
 

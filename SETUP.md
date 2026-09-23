@@ -12,7 +12,10 @@ Ya está creado (`animeless-e07bf`) y sus claves ya están puestas en `.env`. So
 que en la consola de Firebase (https://console.firebase.google.com/project/animeless-e07bf):
 
 1. **Authentication** → Sign-in method → habilitá **Google** (si todavía no lo hiciste).
-2. **Firestore Database** → creá la base si no existe (modo producción, cualquier región).
+2. **Firestore Database** → **Create database** si el botón todavía dice eso (si ya
+   probaste `firebase deploy` y se cortó a mitad de camino por el tema de Cloud
+   Functions, entrá a esta sección y confirmá que la base ya exista con estado
+   "Active" — si no, creala manualmente acá, modo producción, cualquier región).
 3. **Authentication → Settings → Authorized domains** → agregá el dominio donde vayas a
    deployar (Vercel/Render/lo que sea) — `localhost` ya viene autorizado por defecto.
 
@@ -28,35 +31,59 @@ npm run dev
 
 El login con Google y el leaderboard ya deberían andar apenas hagas los pasos de
 Authentication/Firestore de arriba. La categoría de episodios va a aparecer "sin datos"
-hasta que corras la Cloud Function (paso 5).
+(y el juego la salta sola) hasta que hagas el paso 5.
 
-## 4. Deployar Firestore rules y Cloud Functions
+## 4. Deployar las reglas de Firestore
 
 ```bash
 npm install -g firebase-tools   # si no lo tenés
 firebase login
-firebase use animeless-e07bf
-cd functions && npm install && cd ..
-firebase deploy --only firestore:rules,functions
+firebase deploy --only firestore:rules
 ```
 
-Esto sube:
-- `firestore.rules`: reglas de seguridad (leaderboard requiere login, episodeRatings es solo lectura).
-- `functions/updateEpisodeRatings`: job que corre **solo, todos los días a las 8am hora Argentina**,
-  descarga los datasets oficiales no-comerciales de IMDb (`title.episode.tsv.gz` + `title.ratings.tsv.gz`)
-  y guarda los ratings por episodio en Firestore, solo para los animes listados en
-  `src/data/animeImdbSeed.js` (y su copia en `functions/index.js`).
+(El `.firebaserc` ya apunta a `animeless-e07bf`, no hace falta `firebase use`.)
 
-## 5. Primera carga de datos de episodios (no esperar al cron)
+Esto sube `firestore.rules`: leaderboard requiere login, `episodeRatings` es solo lectura.
+**Importante:** esto NO necesita el plan Blaze — el error que te salió
+("Your project must be on the Blaze plan") era porque `firebase deploy` intentaba
+deployar Cloud Functions al mismo tiempo, y Functions sí pide Blaze (tarjeta de
+crédito, aunque no te cobre nada por este uso tan chico). Para no depender de eso,
+el refresco de episodios se mueve al paso 5, corriendo en GitHub Actions en vez de
+Cloud Functions — gratis, sin tarjeta.
 
-Después del deploy, el job recién va a correr la primera vez a las 8am. Para no esperar,
-llamá una vez a mano al endpoint manual que quedó publicado:
+## 5. Ratings de episodios: GitHub Actions en vez de Cloud Functions
+
+`scripts/update-episode-ratings.mjs` hace el mismo trabajo que iba a hacer la Cloud
+Function (bajar los datasets de IMDb y guardar los ratings en Firestore), pero corre
+como un workflow programado de GitHub Actions — no toca el plan de Firebase para nada.
+
+**Setup (una sola vez):**
+
+1. Firebase Console → ⚙️ **Project settings** → pestaña **Service accounts** →
+   **Generate new private key**. Se descarga un `.json` — guardalo, no lo subas al repo
+   (ya está en `.gitignore` por las dudas).
+2. En GitHub: tu repo → **Settings → Secrets and variables → Actions → New repository
+   secret**. Nombre: `FIREBASE_SERVICE_ACCOUNT`. Valor: pegá el contenido completo de
+   ese `.json`.
+3. Listo. El workflow `.github/workflows/update-episode-ratings.yml` ya está en el repo
+   y corre solo **todos los días a las 8am hora Argentina** (11:00 UTC).
+
+**Para no esperar al cron de mañana**, andá a tu repo en GitHub → pestaña **Actions** →
+"Update episode ratings" → botón **Run workflow** → Run. Tarda 1-2 minutos.
+
+**Para correrlo en tu compu** (probar antes de subirlo, opcional): guardá el `.json` del
+paso 1 en algún lado local (por ejemplo `./service-account.json`, que también está
+gitignoreado) y agregá a tu `.env`:
+
+```
+FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
+```
+
+Y corré:
 
 ```bash
-curl https://<tu-region>-<tu-project-id>.cloudfunctions.net/updateEpisodeRatingsNow
+node --env-file=.env scripts/update-episode-ratings.mjs
 ```
-
-(La URL exacta te la muestra la terminal cuando corras `firebase deploy`.)
 
 ## 6. YouTube Data API
 
@@ -78,15 +105,12 @@ Esto vuelve a generar `src/data/openingsSeed.json`. Revisá a mano el `resolvedT
 `channelTitle` de cada uno: la búsqueda de YouTube a veces trae un cover o una
 compilación en vez del opening oficial.
 
-## 7. Deploy del front (Vercel / Firebase Hosting / lo que sea)
+## 7. Deploy del front (Vercel)
 
-```bash
-npm run build
-```
-
-Sube la carpeta `dist/`. Si usás Firebase Hosting: `firebase deploy --only hosting`.
-Acordate de configurar las mismas variables `VITE_*` como env vars en el servicio que
-elijas (Vercel, Render, etc.) — el build las necesita en tiempo de compilación.
+Ya tenés el proyecto conectado en Vercel. Solo falta que en **Project Settings →
+Environment Variables** cargues las mismas variables que tenés en tu `.env` local
+(las `VITE_FIREBASE_*` y `VITE_YOUTUBE_API_KEY`) — Vercel las necesita en build time,
+no alcanza con que estén en tu compu. Después de guardarlas, hacé un redeploy.
 
 ## Decisiones técnicas y limitaciones conocidas
 
@@ -96,7 +120,9 @@ elijas (Vercel, Render, etc.) — el build las necesita en tiempo de compilació
 - **Rating por episodio**: MAL/AniList no tienen rating por episodio individual. Se usa el
   dataset **no-comercial oficial** de IMDb (autorizado explícitamente para este uso, a
   diferencia de scrapear la web en vivo, que sus Términos prohíben). Se descartó SeriesGraph
-  porque sus ToS prohíben expresamente el scraping automatizado sin permiso escrito.
+  porque sus ToS prohíben expresamente el scraping automatizado sin permiso escrito. El
+  refresco corre en GitHub Actions (no en Cloud Functions) porque Functions exige el plan
+  Blaze de Firebase; Firestore por sí solo es gratis en el plan Spark.
 - **Vistas de openings**: YouTube Data API v3. Los `videoId` se resuelven una vez con
   `scripts/resolve-openings.mjs` (búsqueda) y quedan fijos en `src/data/openingsSeed.json`;
   las vistas se consultan en vivo (`videos.list`, gasta 1 unit de cuota por partida, no rompe

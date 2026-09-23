@@ -1,0 +1,23 @@
+name: Update episode ratings
+
+on:
+  schedule:
+    # 08:00 hora Argentina = 11:00 UTC (Argentina no tiene horario de verano, es fijo)
+    - cron: "0 11 * * *"
+  workflow_dispatch: {} # para correrlo a mano desde la pestaña Actions de GitHub
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: node scripts/update-episode-ratings.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

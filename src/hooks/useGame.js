@@ -79,7 +79,6 @@ export function useGame() {
   }, []);
 
   const startCategoryRounds = useCallback(() => {
-    setSkipNotice(null);
     loadRound(category.id);
   }, [category, loadRound]);
 
@@ -101,6 +100,7 @@ export function useGame() {
   );
 
   const nextRound = useCallback(() => {
+    setSkipNotice(null);
     if (roundNumber >= ROUNDS_PER_CATEGORY) {
       advanceToNextCategory(category.id);
       return;

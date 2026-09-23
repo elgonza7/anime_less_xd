@@ -17,7 +17,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url, { retries = 3, baseDelayMs = 700 } = {}) {
+async function fetchWithRetry(url, { retries = 2, baseDelayMs = 400 } = {}) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     await throttle();

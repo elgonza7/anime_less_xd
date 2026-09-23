@@ -17,6 +17,9 @@ dist-ssr
 *.sln
 *.sw?
 
-functions/node_modules
 firebase-debug.log
 .firebase
+
+# credenciales de la cuenta de servicio de Firebase (nunca al repo)
+serviceAccount*.json
+*firebase-adminsdk*.json

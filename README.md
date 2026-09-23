@@ -16,9 +16,10 @@ final, tu puntaje entra al ranking global.
 ## Stack
 
 React + Vite + Tailwind v4 + Framer Motion en el front. Firebase (Auth con Google +
-Firestore) para login y leaderboard. Una Cloud Function corre todos los días a las 8am
-(hora Argentina) para refrescar los ratings de episodios. UI en inglés (para llegar a
-más gente), comentarios de código en español.
+Firestore, plan Spark/gratis) para login y leaderboard. Un workflow de GitHub Actions
+corre todos los días a las 8am (hora Argentina) para refrescar los ratings de episodios
+—así no hace falta el plan pago de Firebase Functions. UI en inglés (para llegar a más
+gente), comentarios de código en español.
 
 ## Correrlo
 
