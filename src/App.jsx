@@ -57,7 +57,7 @@ function App() {
         onGoLeaderboard={() => setView("leaderboard")}
       />
 
-      <main className="flex flex-1 items-center justify-center p-3 sm:p-4">
+      <main className="flex flex-1 items-start justify-center p-3 pt-4 sm:p-4 sm:pt-6">
         <AnimatePresence mode="wait">
           {view === "game" && user && alreadyPlayedToday === null && (
             <motion.p key="checking" exit={{ opacity: 0 }} className="text-lg opacity-60">

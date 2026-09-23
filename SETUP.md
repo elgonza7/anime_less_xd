@@ -139,9 +139,14 @@ Después de guardar las variables, hacé un redeploy.
 
 ## Decisiones técnicas y limitaciones conocidas
 
-- **Rating de anime / tamaño de fandom**: vía [Jikan](https://jikan.moe) (API no oficial
-  de MyAnimeList, gratis, sin key). `score` = rating, `members` = proxy de fandom (no existe
-  una métrica real de "tamaño de fandom" en ninguna API pública).
+- **Rating de anime / tamaño de fandom**: vía [AniList](https://anilist.co) (API GraphQL
+  pública, gratis, sin key). `meanScore` = rating, `popularity` = proxy de fandom (no existe
+  una métrica real de "tamaño de fandom" en ninguna API pública). Se probó primero con Jikan
+  (MyAnimeList) pero se cayó en cadena (429/504) varias veces durante el desarrollo; AniList
+  fue mucho más estable en la práctica, además de traer los tres datos (score, popularidad,
+  imagen) en una sola consulta. La búsqueda usa `sort: POPULARITY_DESC` para evitar que
+  matchee por error una entrada rara (especial/movie de baja popularidad) en vez de la serie
+  principal — pasó con "Frieren" antes de agregar el sort.
 - **Rating por episodio**: MAL/AniList no tienen rating por episodio individual. Se usa el
   dataset **no-comercial oficial** de IMDb (autorizado explícitamente para este uso, a
   diferencia de scrapear la web en vivo, que sus Términos prohíben). Se descartó SeriesGraph

@@ -1,13 +1,17 @@
-// lista curada y CHICA a proposito: menos titulos = menos repeticion rara,
-// menos carga a jikan, y mas facil de mantener el fallback offline al dia.
-// se resuelven en vivo contra jikan (score, members, imagen) asi no
-// hardcodeamos mal_id a mano y arriesgamos mandar un id equivocado. los
-// titulos usan el nombre oficial completo para que la busqueda de jikan no
-// matchee por error una pelicula/spin-off en vez de la serie principal.
+// lista mezclando mega-hits con animes bastante mas under, a proposito:
+// la idea es que a veces te toque algo que todo el mundo conoce y a veces
+// algo raro que nunca viste, para que la sorpresa sea parte del juego. se
+// resuelven en vivo contra AniList (score, popularidad, imagen), asi no
+// hardcodeamos ids a mano. usa nombres oficiales completos para que la
+// busqueda de AniList no matchee por error un spin-off/pelicula en vez de
+// la serie principal (paso varias veces con nombres cortos tipo "Demon
+// Slayer" a secas). si agregas mas, segui el mismo criterio.
 export const ANIME_TITLES_SEED = [
+  // mega-hits
   "Attack on Titan",
   "Death Note",
   "Naruto",
+  "Naruto Shippuden",
   "Fullmetal Alchemist: Brotherhood",
   "One Punch Man",
   "Demon Slayer: Kimetsu no Yaiba",
@@ -25,4 +29,75 @@ export const ANIME_TITLES_SEED = [
   "Sword Art Online",
   "Dragon Ball Z",
   "Haikyuu",
+  "Tokyo Ghoul",
+  "Re:Zero − Starting Life in Another World",
+  "Fairy Tail",
+  "Mob Psycho 100",
+  "The Promised Neverland",
+  "Fruits Basket (2019)",
+  "Violet Evergarden",
+  "Made in Abyss",
+  "Mushoku Tensei: Jobless Reincarnation",
+  "Frieren: Beyond Journey's End",
+  "Oshi no Ko",
+  "Solo Leveling",
+  "That Time I Got Reincarnated as a Slime",
+  "Overlord",
+  "KonoSuba: God's Blessing on This Wonderful World!",
+  "Black Clover",
+  "Fire Force",
+  "Tokyo Revengers",
+  "The Rising of the Shield Hero",
+  "Assassination Classroom",
+  "Blue Lock",
+  "Dr. STONE",
+
+  // conocidos pero con menos "fandom masivo" que los de arriba
+  "Neon Genesis Evangelion",
+  "Sailor Moon",
+  "Yu Yu Hakusho",
+  "Inuyasha",
+  "Slam Dunk",
+  "Psycho-Pass",
+  "Parasyte -the maxim-",
+  "ERASED",
+  "Kaguya-sama: Love is War",
+  "Horimiya",
+  "Bocchi the Rock!",
+  "K-On!",
+  "Clannad: After Story",
+  "Angel Beats!",
+  "Your Lie in April",
+  "Toradora!",
+  "Gurren Lagann",
+  "Berserk",
+  "Trigun",
+  "Rurouni Kenshin (1996)",
+  "Hajime no Ippo",
+  "Great Teacher Onizuka",
+
+  // under / de culto, para el factor sorpresa
+  "Durarara!!",
+  "Baccano!",
+  "Noragami",
+  "Dorohedoro",
+  "Beastars",
+  "Vivy: Fluorite Eye's Song",
+  "86 EIGHTY-SIX",
+  "Darling in the Franxx",
+  "Guilty Crown",
+  "Katanagatari",
+  "Bakemonogatari",
+  "A Certain Scientific Railgun",
+  "Fate/Zero",
+  "NANA",
+  "Given",
+  "Carole & Tuesday",
+  "Samurai Champloo",
+  "FLCL",
+  "Serial Experiments Lain",
+  "Monster",
+  "Paranoia Agent",
+  "Ghost in the Shell: Stand Alone Complex",
+  "Legend of the Galactic Heroes",
 ];

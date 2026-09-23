@@ -1,4 +1,4 @@
-import { fetchAnimeByTitle } from "../services/jikanService";
+import { fetchAnimeByTitle } from "../services/aniListService";
 import { fetchVideoStats } from "../services/youtubeService";
 import { resolveOpening } from "../services/openingsCacheService";
 import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from "../services/episodeService";
@@ -9,7 +9,7 @@ import { dailyRandomInt } from "./dailySeed";
 
 export class EpisodesNotReadyError extends Error {}
 
-// jikan (la api de MAL) a veces se cae para un titulo puntual pero anda bien para el
+// a veces AniList se cae para un titulo puntual pero anda bien para el
 // resto. en vez de reventar la ronda, probamos con otro anime del pool.
 async function pickWorkingAnime(candidateTitles) {
   const pool = [...candidateTitles];
@@ -37,7 +37,7 @@ function unusedPool(fullList, usedKeys) {
 
 export async function fetchRatingEntry(usedKeys) {
   const picked = await pickWorkingAnime(unusedPool(ANIME_TITLES_SEED, usedKeys));
-  if (!picked) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
+  if (!picked) throw new Error("AniList isn't responding right now, try again in a bit.");
   return {
     itemKey: picked.seedTitle,
     label: picked.data.title,
@@ -50,7 +50,7 @@ export async function fetchRatingEntry(usedKeys) {
 
 export async function fetchFandomEntry(usedKeys) {
   const picked = await pickWorkingAnime(unusedPool(ANIME_TITLES_SEED, usedKeys));
-  if (!picked) throw new Error("MyAnimeList isn't responding right now, try again in a bit.");
+  if (!picked) throw new Error("AniList isn't responding right now, try again in a bit.");
   return {
     itemKey: picked.seedTitle,
     label: picked.data.title,

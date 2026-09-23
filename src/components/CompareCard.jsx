@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedNumber from "./AnimatedNumber";
 
-// mas chico que antes a proposito: que entre todo el juego en un viewport
-// tipico sin tener que scrollear para ver las tarjetas.
-export const CARD_SIZE_CLASSES = "h-[min(52vh,28rem)] w-full sm:h-[min(62vh,34rem)] sm:w-[min(32vw,24rem)]";
+export const CARD_SIZE_CLASSES = "h-[min(64vh,38rem)] w-full sm:h-[min(76vh,46rem)] sm:w-[min(36vw,28rem)]";
 
 export default function CompareCard({
   side,
@@ -74,10 +72,10 @@ export default function CompareCard({
         )}
       </AnimatePresence>
 
-      <div className="absolute inset-x-0 bottom-0 space-y-1.5 p-4">
-        <p className="text-lg font-black leading-tight text-white drop-shadow sm:text-2xl">{label}</p>
+      <div className="absolute inset-x-0 bottom-0 space-y-2 p-5">
+        <p className="text-xl font-black leading-tight text-white drop-shadow sm:text-3xl">{label}</p>
         <p
-          className={`text-base font-bold transition-opacity sm:text-lg ${showStat ? "opacity-100" : "opacity-0"} ${
+          className={`text-lg font-bold transition-opacity sm:text-xl ${showStat ? "opacity-100" : "opacity-0"} ${
             revealed && isWinner ? "text-emerald-400" : "text-white/70"
           }`}
         >

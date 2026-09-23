@@ -8,10 +8,10 @@ final, tu puntaje entra al ranking global.
 
 | Categoría | Fuente de datos |
 |---|---|
-| ⭐ Anime Rating | Jikan (MyAnimeList) |
+| ⭐ Anime Rating | AniList (GraphQL) |
 | 🎬 Episode Rating | Dataset oficial no-comercial de IMDb |
 | 🎵 Opening Views | YouTube Data API v3 (se resuelve bajo demanda, ver SETUP.md) |
-| 👥 Fandom Size | Miembros en MyAnimeList (proxy, vía Jikan) |
+| 👥 Fandom Size | Popularidad en AniList (proxy) |
 
 ## Stack
 
