@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import CompareCard from "./CompareCard";
 import ProgressDots from "./ProgressDots";
+import CategoryStepper from "./CategoryStepper";
 import { ROUNDS_PER_CATEGORY } from "../game/categories";
 import { playCorrect, playWrong, playCategoryComplete } from "../game/sounds";
 
@@ -45,12 +46,12 @@ export default function GameScreen({ game, onFinished }) {
   if (phase === "error") {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
-        <p className="text-lg font-semibold">😵 {game.errorMessage}</p>
+        <p className="text-xl font-semibold">😵 {game.errorMessage}</p>
         <div className="flex gap-3">
-          <button onClick={game.retryRound} className="rounded-full bg-violet-600 px-5 py-2 font-bold text-white hover:bg-violet-500">
+          <button onClick={game.retryRound} className="rounded-full bg-violet-600 px-6 py-3 text-lg font-bold text-white hover:bg-violet-500">
             Retry
           </button>
-          <button onClick={game.skipCategory} className="rounded-full bg-panel px-5 py-2 font-bold hover:bg-panel-border">
+          <button onClick={game.skipCategory} className="rounded-full bg-panel px-6 py-3 text-lg font-bold hover:bg-panel-border">
             Skip this category
           </button>
         </div>
@@ -64,20 +65,20 @@ export default function GameScreen({ game, onFinished }) {
         key="recap"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="mx-auto flex max-w-md flex-col items-center gap-3 text-center"
+        className="mx-auto flex max-w-md flex-col items-center gap-4 text-center"
       >
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 16 }}
-          className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500 text-5xl text-white"
+          className="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-500 text-6xl text-white"
         >
           ✓
         </motion.span>
-        <p className="text-sm uppercase tracking-widest text-violet-400">{category.label}</p>
-        <p className="text-6xl font-black">
+        <p className="text-base font-bold uppercase tracking-widest text-violet-400">{category.label}</p>
+        <p className="text-7xl font-black">
           {game.categoryScore}
-          <span className="text-3xl opacity-50">/{ROUNDS_PER_CATEGORY}</span>
+          <span className="text-4xl opacity-50">/{ROUNDS_PER_CATEGORY}</span>
         </p>
       </motion.div>
     );
@@ -87,7 +88,9 @@ export default function GameScreen({ game, onFinished }) {
   const isLoading = phase === "intro" || phase === "loading" || phase === "finished" || !game.round;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col items-center gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col items-center gap-8">
+      <CategoryStepper currentIndex={game.categoryIndex} />
+
       <AnimatePresence mode="wait">
         <motion.div
           key={category.id}
@@ -96,13 +99,13 @@ export default function GameScreen({ game, onFinished }) {
           className="text-center"
         >
           {game.skipNotice && (
-            <p className="mb-2 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">{game.skipNotice}</p>
+            <p className="mb-3 rounded-full bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">{game.skipNotice}</p>
           )}
-          <p className="text-sm uppercase tracking-wide text-violet-400">
-            {category.icon} {category.label} · Round {game.roundNumber}/{ROUNDS_PER_CATEGORY}
+          <h2 className="text-3xl font-black sm:text-4xl">{category.question}</h2>
+          <p className="mt-2 text-lg font-semibold opacity-70">
+            Round {game.roundNumber} of {ROUNDS_PER_CATEGORY}
           </p>
-          <h2 className="mt-1 text-2xl font-bold sm:text-3xl">{category.question}</h2>
-          <p className="mt-1 text-sm opacity-70">Total score: {game.totalScore}</p>
+          <p className="mt-1 text-sm opacity-50">Total score: {game.totalScore}</p>
         </motion.div>
       </AnimatePresence>
 
@@ -113,13 +116,13 @@ export default function GameScreen({ game, onFinished }) {
           <motion.span
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            className="text-4xl"
+            className="text-5xl"
           >
             {category.icon}
           </motion.span>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-8">
           <CompareCard
             side="left"
             {...game.round.left}
@@ -128,7 +131,7 @@ export default function GameScreen({ game, onFinished }) {
             isWinner={revealed && game.round.left.value >= game.round.right.value}
             onClick={game.choose}
           />
-          <span className="rounded-full bg-panel px-4 py-2 text-sm font-black shadow">OR</span>
+          <span className="rounded-full bg-panel px-5 py-2.5 text-base font-black shadow">OR</span>
           <CompareCard
             side="right"
             {...game.round.right}

@@ -30,10 +30,13 @@ export default function Navbar({ user, theme, onToggleTheme, muted, onToggleMute
           </button>
 
           {user ? (
-            <button onClick={signOutUser} className="flex items-center gap-2 rounded-full bg-panel px-3 py-1.5 text-sm">
+            <div className="flex items-center gap-2 rounded-full bg-panel px-3 py-1.5 text-sm">
               {user.photoURL && <img src={user.photoURL} alt="" className="h-6 w-6 rounded-full" />}
               <span className="max-w-24 truncate">{user.displayName}</span>
-            </button>
+              <button onClick={signOutUser} className="font-semibold text-violet-400 hover:text-violet-300">
+                Sign Out
+              </button>
+            </div>
           ) : (
             <button
               onClick={signInWithGoogle}

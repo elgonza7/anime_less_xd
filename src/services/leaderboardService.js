@@ -1,45 +1,27 @@
-import {
-  collection,
-  doc,
-  getCountFromServer,
-  getDoc,
-  increment,
-  orderBy,
-  query,
-  limit,
-  setDoc,
-  getDocs,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getCountFromServer, getDoc, orderBy, query, limit, getDocs, where } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase/client";
 
 const SCORES_COLLECTION = "scores";
 
-export async function submitScore(user, pointsWonThisRun) {
+export class AlreadyPlayedTodayError extends Error {}
+
+// el puntaje ya NO se escribe directo a firestore desde el cliente (mira
+// firestore.rules: scores solo se puede leer, nunca escribir desde el
+// browser). todo pasa por /api/submit-score, que valida el token, chequea
+// "un intento guardado por dia" por usuario Y por IP, y recien ahi escribe
+// con la Admin SDK. asi nadie puede inventarse un puntaje desde devtools.
+export async function submitScore(user, score) {
   if (!firebaseReady || !user) return;
 
-  const ref = doc(db, SCORES_COLLECTION, user.uid);
-  const existing = await getDoc(ref);
+  const idToken = await user.getIdToken();
+  const res = await fetch("/api/submit-score", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ score }),
+  });
 
-  if (existing.exists()) {
-    await setDoc(
-      ref,
-      {
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        totalPoints: increment(pointsWonThisRun),
-        updatedAt: Date.now(),
-      },
-      { merge: true }
-    );
-  } else {
-    await setDoc(ref, {
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      totalPoints: pointsWonThisRun,
-      updatedAt: Date.now(),
-    });
-  }
+  if (res.status === 409) throw new AlreadyPlayedTodayError("You already have a saved score for today.");
+  if (!res.ok) throw new Error(`No se pudo guardar el puntaje (${res.status})`);
 }
 
 export async function getTopScores(topN = 10) {

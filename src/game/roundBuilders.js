@@ -9,8 +9,6 @@ import { pickTwoDistinct } from "./utils";
 
 export class EpisodesNotReadyError extends Error {}
 
-const fmt = (n) => (n || n === 0 ? n.toLocaleString("en-US") : "?");
-
 // jikan (la api de MAL) a veces se cae para un titulo puntual pero anda bien para el
 // resto. en vez de reventar toda la ronda, probamos con otro anime del pool.
 async function pickWorkingAnime(candidateTitles) {
@@ -49,8 +47,8 @@ export async function buildRatingRound(usedTitles) {
 
   return {
     usedKeys: [a.seedTitle, b.seedTitle],
-    left: { label: a.data.title, subLabel: `⭐ ${fmt(a.data.score)}`, imageUrl: a.data.imageUrl, value: a.data.score ?? 0 },
-    right: { label: b.data.title, subLabel: `⭐ ${fmt(b.data.score)}`, imageUrl: b.data.imageUrl, value: b.data.score ?? 0 },
+    left: { label: a.data.title, imageUrl: a.data.imageUrl, value: a.data.score ?? 0, statIcon: "⭐", statDecimals: 2 },
+    right: { label: b.data.title, imageUrl: b.data.imageUrl, value: b.data.score ?? 0, statIcon: "⭐", statDecimals: 2 },
   };
 }
 
@@ -61,15 +59,17 @@ export async function buildFandomRound(usedTitles) {
     usedKeys: [a.seedTitle, b.seedTitle],
     left: {
       label: a.data.title,
-      subLabel: `👥 ${fmt(a.data.members)} members`,
       imageUrl: a.data.imageUrl,
       value: a.data.members ?? 0,
+      statIcon: "👥",
+      statUnit: " members",
     },
     right: {
       label: b.data.title,
-      subLabel: `👥 ${fmt(b.data.members)} members`,
       imageUrl: b.data.imageUrl,
       value: b.data.members ?? 0,
+      statIcon: "👥",
+      statUnit: " members",
     },
   };
 }
@@ -87,15 +87,17 @@ export async function buildOpeningRound(usedKeys) {
     usedKeys: [catalogA.key, catalogB.key],
     left: {
       label: `${opA.anime} — ${opA.opening}`,
-      subLabel: `▶️ ${fmt(statsA.viewCount)} views`,
       imageUrl: statsA.thumbnail,
       value: statsA.viewCount,
+      statIcon: "▶️",
+      statUnit: " views",
     },
     right: {
       label: `${opB.anime} — ${opB.opening}`,
-      subLabel: `▶️ ${fmt(statsB.viewCount)} views`,
       imageUrl: statsB.thumbnail,
       value: statsB.viewCount,
+      statIcon: "▶️",
+      statUnit: " views",
     },
   };
 }
@@ -113,9 +115,10 @@ async function buildEpisodeSide() {
   return {
     key: episode.tconst,
     label: `${entry.anime} — S${episode.season}E${episode.episode}`,
-    subLabel: `⭐ ${episode.rating} (${fmt(episode.votes)} IMDb votes)`,
     imageUrl: animeInfo?.imageUrl,
     value: episode.rating,
+    statIcon: "⭐",
+    statDecimals: 1,
   };
 }
 

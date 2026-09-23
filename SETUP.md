@@ -42,10 +42,20 @@ firebase deploy --only firestore:rules
 ```
 
 (El `.firebaserc` ya apunta a `animeless-e07bf`, no hace falta `firebase use`.)
-Si ya habías corrido esto antes, volvé a correrlo — se agregó la colección
-`openingsCache` a las reglas.
 
-Esto sube `firestore.rules`: leaderboard requiere login, `episodeRatings` es solo lectura.
+**Esto es lo que te está faltando ahora mismo.** Si estás viendo "Missing or
+insufficient permissions" en el juego, es porque este comando todavía no se corrió
+con éxito — Firestore por defecto rechaza TODAS las lecturas/escrituras hasta que le
+subís tus propias reglas (`firestore.rules`). El intento anterior con
+`firebase deploy --only firestore:rules,functions` se cortó a mitad de camino por el
+tema de Cloud Functions/Blaze, así que las reglas de este repo probablemente nunca
+llegaron a aplicarse de verdad. Corré el comando de arriba (sin `,functions`) y
+probá de nuevo.
+
+Si ya lo habías corrido antes, volvé a correrlo igual — se agregaron las colecciones
+`openingsCache` y `dailyIPs`, y se cerró la escritura directa de `scores` (ver el
+punto 6, ahora todo puntaje pasa por el servidor).
+
 **Importante:** esto NO necesita el plan Blaze — el error que te salió
 ("Your project must be on the Blaze plan") era porque `firebase deploy` intentaba
 deployar Cloud Functions al mismo tiempo, y Functions sí pide Blaze (tarjeta de
@@ -106,12 +116,26 @@ sin gastar cuota de más. Si en algún momento un opening resuelto queda mal (tr
 cover en vez del oficial), borrá ese documento puntual en Firestore Console
 (colección `openingsCache`) y se va a volver a resolver la próxima vez que salga.
 
-## 7. Deploy del front (Vercel)
+## 7. Deploy del front + la función de puntajes (Vercel)
 
-Ya tenés el proyecto conectado en Vercel. Solo falta que en **Project Settings →
-Environment Variables** cargues las mismas variables que tenés en tu `.env` local
-(las `VITE_FIREBASE_*` y `VITE_YOUTUBE_API_KEY`) — Vercel las necesita en build time,
-no alcanza con que estén en tu compu. Después de guardarlas, hacé un redeploy.
+Ya tenés el proyecto conectado en Vercel (https://vercel.com/gokinflores-5583/anime-less-xd).
+En **Project Settings → Environment Variables** cargá:
+
+- `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
+  `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
+  `VITE_FIREBASE_APP_ID`, `VITE_YOUTUBE_API_KEY` — las mismas que tenés en `.env`.
+- `FIREBASE_SERVICE_ACCOUNT` — **el mismo JSON completo** de la cuenta de servicio
+  que generaste en el paso 5 (Firebase Console → Project settings → Service
+  accounts). Esta la usa `api/submit-score.js` (la función que guarda los puntajes)
+  para validar el login y escribir en Firestore con permisos de administrador. Sin
+  esta variable, guardar el puntaje al final de la partida va a fallar.
+
+**Ojo:** `FIREBASE_SERVICE_ACCOUNT` NO lleva el prefijo `VITE_` — si se lo pusieras,
+Vite lo metería en el bundle público del navegador, y esa clave sí es secreta de
+verdad (a diferencia del `apiKey` de Firebase web). Dejala tal cual, sin `VITE_`, y
+Vercel la va a exponer solo del lado del servidor (`api/*.js`), nunca al cliente.
+
+Después de guardar las variables, hacé un redeploy.
 
 ## Decisiones técnicas y limitaciones conocidas
 
@@ -124,12 +148,16 @@ no alcanza con que estén en tu compu. Después de guardarlas, hacé un redeploy
   porque sus ToS prohíben expresamente el scraping automatizado sin permiso escrito. El
   refresco corre en GitHub Actions (no en Cloud Functions) porque Functions exige el plan
   Blaze de Firebase; Firestore por sí solo es gratis en el plan Spark.
-- **Vistas de openings**: YouTube Data API v3. Los `videoId` se resuelven una vez con
-  `scripts/resolve-openings.mjs` (búsqueda) y quedan fijos en `src/data/openingsSeed.json`;
-  las vistas se consultan en vivo (`videos.list`, gasta 1 unit de cuota por partida, no rompe
-  el límite gratis diario).
-- **Anti-cheat del leaderboard**: el puntaje se escribe directo desde el cliente a Firestore.
-  Las reglas evitan que alguien toque el puntaje de otro usuario, pero no evitan que alguien
-  logueado edite su propio `totalPoints` desde la consola del navegador. Para una entrega de
-  facultad esto es un límite aceptable; si esto se pone serio en algún momento, hay que mover
-  la suma de puntos a una Cloud Function `callable` que valide server-side.
+- **Vistas de openings**: YouTube Data API v3. Los `videoId` se resuelven bajo demanda y
+  quedan cacheados en Firestore (`openingsCache`) — ver el punto 6. Las vistas se consultan
+  en vivo (`videos.list`, gasta 1 unit de cuota por partida, no rompe el límite gratis diario).
+- **Anti-cheat y límite de un intento por día**: el puntaje NO se escribe desde el cliente —
+  pasa por `api/submit-score.js` (función serverless de Vercel), que valida el token de
+  Google con la Admin SDK y solo deja guardar **un puntaje por usuario por día** (usando la
+  fecha UTC) y además bloquea reintentos desde la misma IP con otra cuenta el mismo día. Esto
+  evita tanto que alguien edite su propio puntaje desde la consola del navegador como que
+  juegue varias veces por día para mejorar su posición en el ranking.
+- **No se guarda historial de partidas**: por diseño, cada documento en `scores/{uid}` guarda
+  solo el último puntaje jugado (se sobreescribe, no se acumula), para no gastar de más en
+  lecturas/escrituras de Firestore. El leaderboard siempre refleja el intento más reciente de
+  cada usuario, no un acumulado histórico.

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CATEGORIES, ROUNDS_PER_CATEGORY } from "../game/categories";
-import { submitScore } from "../services/leaderboardService";
+import { submitScore, AlreadyPlayedTodayError } from "../services/leaderboardService";
 import { playFinale } from "../game/sounds";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
 
 export default function ResultsScreen({ score, user, onPlayAgain, onGoToLeaderboard }) {
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState("saving"); // saving | saved | already-played | error
   const alreadySubmitted = useRef(false);
 
   useEffect(() => {
@@ -18,8 +18,15 @@ export default function ResultsScreen({ score, user, onPlayAgain, onGoToLeaderbo
     if (!user || alreadySubmitted.current) return;
     alreadySubmitted.current = true;
     submitScore(user, score)
-      .then(() => setSaved(true))
-      .catch((err) => console.error("couldn't save score:", err));
+      .then(() => setSaveState("saved"))
+      .catch((err) => {
+        if (err instanceof AlreadyPlayedTodayError) {
+          setSaveState("already-played");
+        } else {
+          console.error("couldn't save score:", err);
+          setSaveState("error");
+        }
+      });
   }, [user, score]);
 
   const pct = Math.round((score / MAX_SCORE) * 100);
@@ -50,7 +57,12 @@ export default function ResultsScreen({ score, user, onPlayAgain, onGoToLeaderbo
       </motion.h2>
 
       {user ? (
-        <p className="text-sm opacity-70">{saved ? "Score saved to your account ✅" : "Saving score..."}</p>
+        <p className="text-sm opacity-70">
+          {saveState === "saving" && "Saving score..."}
+          {saveState === "saved" && "Score saved to your account ✅"}
+          {saveState === "already-played" && "You already played today — come back tomorrow for another try!"}
+          {saveState === "error" && "Couldn't save your score, but the game still counts for fun 🙂"}
+        </p>
       ) : (
         <p className="text-sm opacity-70">Sign in with Google so this score counts on the leaderboard.</p>
       )}

@@ -10,8 +10,15 @@ export async function fetchEpisodesFor(animeEntry) {
   if (!firebaseReady) return null;
   if (cache.has(animeEntry.tconst)) return cache.get(animeEntry.tconst);
 
-  const snap = await getDoc(doc(db, "episodeRatings", animeEntry.tconst));
-  const data = snap.exists() ? snap.data() : null;
+  let data = null;
+  try {
+    const snap = await getDoc(doc(db, "episodeRatings", animeEntry.tconst));
+    data = snap.exists() ? snap.data() : null;
+  } catch (err) {
+    // reglas de Firestore sin deployar, base sin crear, offline, etc. -> tratamos
+    // igual que "todavia no hay datos", el juego salta la categoria sola.
+    console.warn(`no se pudo leer episodeRatings/${animeEntry.tconst}:`, err.message);
+  }
   cache.set(animeEntry.tconst, data);
   return data;
 }

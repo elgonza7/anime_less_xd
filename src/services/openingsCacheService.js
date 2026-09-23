@@ -12,12 +12,17 @@ export async function resolveOpening(catalogEntry) {
   if (memoryCache.has(catalogEntry.key)) return memoryCache.get(catalogEntry.key);
 
   if (firebaseReady) {
-    const ref = doc(db, COLLECTION, catalogEntry.key);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const data = snap.data();
-      memoryCache.set(catalogEntry.key, data);
-      return data;
+    try {
+      const ref = doc(db, COLLECTION, catalogEntry.key);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        memoryCache.set(catalogEntry.key, data);
+        return data;
+      }
+    } catch (err) {
+      // reglas sin deployar, offline, etc. -> seguimos y resolvemos en vivo igual
+      console.warn(`no se pudo leer ${COLLECTION}/${catalogEntry.key}:`, err.message);
     }
   }
 

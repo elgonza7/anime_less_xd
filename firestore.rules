@@ -21,15 +21,19 @@ service cloud.firestore {
     }
 
     // leaderboard: para ver el top hay que estar logueado con Google (asi lo
-    // pidio el cliente). cada usuario solo puede tocar su propio documento.
-    //
-    // ojo: esto no evita 100% que alguien logueado mande un totalPoints
-    // inventado desde la consola del navegador. para una app de facultad esta
-    // bien, pero si esto escala en serio hay que mover la suma de puntos a
-    // una Cloud Function callable en vez de escribir directo desde el cliente.
+    // pidio el cliente). el puntaje NUNCA se escribe desde el cliente: pasa
+    // por api/submit-score.js (Vercel), que valida el token con la Admin SDK,
+    // controla "un intento guardado por dia" por usuario y por IP, y recien
+    // ahi escribe. asi nadie puede inventarse un totalPoints desde devtools.
     match /scores/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // igual que arriba: un intento guardado por IP por dia, lo escribe
+    // unicamente api/submit-score.js.
+    match /dailyIPs/{entryId} {
+      allow read, write: if false;
     }
   }
 }

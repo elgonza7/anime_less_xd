@@ -1,32 +1,212 @@
 [
-  { "seedTitle": "Attack on Titan", "title": "Attack on Titan", "score": 8.5, "members": 4000000 },
-  { "seedTitle": "Death Note", "title": "Death Note", "score": 8.6, "members": 4200000 },
-  { "seedTitle": "Naruto", "title": "Naruto", "score": 8.0, "members": 3300000 },
-  { "seedTitle": "Naruto Shippuden", "title": "Naruto Shippuden", "score": 8.2, "members": 2400000 },
-  { "seedTitle": "Fullmetal Alchemist: Brotherhood", "title": "Fullmetal Alchemist: Brotherhood", "score": 9.1, "members": 3400000 },
-  { "seedTitle": "One Punch Man", "title": "One Punch Man", "score": 8.5, "members": 3300000 },
-  { "seedTitle": "Demon Slayer", "title": "Demon Slayer: Kimetsu no Yaiba", "score": 8.5, "members": 3000000 },
-  { "seedTitle": "Jujutsu Kaisen", "title": "Jujutsu Kaisen", "score": 8.5, "members": 2800000 },
-  { "seedTitle": "Mushoku Tensei", "title": "Mushoku Tensei: Jobless Reincarnation", "score": 8.3, "members": 1300000 },
-  { "seedTitle": "Bleach", "title": "Bleach", "score": 7.9, "members": 2300000 },
-  { "seedTitle": "My Hero Academia", "title": "My Hero Academia", "score": 7.9, "members": 3200000 },
-  { "seedTitle": "Steins;Gate", "title": "Steins;Gate", "score": 9.07, "members": 2700000 },
-  { "seedTitle": "Hunter x Hunter (2011)", "title": "Hunter x Hunter", "score": 9.04, "members": 2700000 },
-  { "seedTitle": "Code Geass", "title": "Code Geass: Lelouch of the Rebellion", "score": 8.7, "members": 2300000 },
-  { "seedTitle": "One Piece", "title": "One Piece", "score": 8.7, "members": 2300000 },
-  { "seedTitle": "Vinland Saga", "title": "Vinland Saga", "score": 8.75, "members": 1500000 },
-  { "seedTitle": "Spy x Family", "title": "Spy x Family", "score": 8.6, "members": 2000000 },
-  { "seedTitle": "Chainsaw Man", "title": "Chainsaw Man", "score": 8.4, "members": 2000000 },
-  { "seedTitle": "Tokyo Ghoul", "title": "Tokyo Ghoul", "score": 7.8, "members": 2700000 },
-  { "seedTitle": "Violet Evergarden", "title": "Violet Evergarden", "score": 8.6, "members": 1900000 },
-  { "seedTitle": "Made in Abyss", "title": "Made in Abyss", "score": 8.7, "members": 1400000 },
-  { "seedTitle": "Cowboy Bebop", "title": "Cowboy Bebop", "score": 8.75, "members": 2000000 },
-  { "seedTitle": "Re:Zero", "title": "Re:Zero − Starting Life in Another World", "score": 8.3, "members": 2300000 },
-  { "seedTitle": "Sword Art Online", "title": "Sword Art Online", "score": 7.2, "members": 3300000 },
-  { "seedTitle": "Fairy Tail", "title": "Fairy Tail", "score": 7.6, "members": 1900000 },
-  { "seedTitle": "Dragon Ball Z", "title": "Dragon Ball Z", "score": 8.16, "members": 2300000 },
-  { "seedTitle": "Mob Psycho 100", "title": "Mob Psycho 100", "score": 8.5, "members": 1700000 },
-  { "seedTitle": "The Promised Neverland", "title": "The Promised Neverland", "score": 8.5, "members": 2000000 },
-  { "seedTitle": "Fruits Basket", "title": "Fruits Basket (2019)", "score": 8.3, "members": 1000000 },
-  { "seedTitle": "Haikyuu", "title": "Haikyuu!!", "score": 8.4, "members": 1900000 }
+  {
+    "seedTitle": "Attack on Titan",
+    "title": "Attack on Titan",
+    "score": 8.5,
+    "members": 4000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-buvcRTBx4NSm.jpg"
+  },
+  {
+    "seedTitle": "Death Note",
+    "title": "Death Note",
+    "score": 8.6,
+    "members": 4200000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1535-kUgkcrfOrkUM.jpg"
+  },
+  {
+    "seedTitle": "Naruto",
+    "title": "Naruto",
+    "score": 8,
+    "members": 3300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20-dE6UHbFFg1A5.jpg"
+  },
+  {
+    "seedTitle": "Naruto Shippuden",
+    "title": "Naruto Shippuden",
+    "score": 8.2,
+    "members": 2400000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1735-kGfVm0YqCPcu.png"
+  },
+  {
+    "seedTitle": "Fullmetal Alchemist: Brotherhood",
+    "title": "Fullmetal Alchemist: Brotherhood",
+    "score": 9.1,
+    "members": 3400000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5114-nSWCgQlmOMtj.jpg"
+  },
+  {
+    "seedTitle": "One Punch Man",
+    "title": "One Punch Man",
+    "score": 8.5,
+    "members": 3300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21087-B5DHjqZ3kW4b.jpg"
+  },
+  {
+    "seedTitle": "Demon Slayer",
+    "title": "Demon Slayer: Kimetsu no Yaiba",
+    "score": 8.5,
+    "members": 3000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21612-d5zrx9CWkxNl.png"
+  },
+  {
+    "seedTitle": "Jujutsu Kaisen",
+    "title": "Jujutsu Kaisen",
+    "score": 8.5,
+    "members": 2800000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-LHBAeoZDIsnF.jpg"
+  },
+  {
+    "seedTitle": "Mushoku Tensei",
+    "title": "Mushoku Tensei: Jobless Reincarnation",
+    "score": 8.3,
+    "members": 1300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108465-1ANspF1EWyFx.jpg"
+  },
+  {
+    "seedTitle": "Bleach",
+    "title": "Bleach",
+    "score": 7.9,
+    "members": 2300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx269-d2GmRkJbMopq.png"
+  },
+  {
+    "seedTitle": "My Hero Academia",
+    "title": "My Hero Academia",
+    "score": 7.9,
+    "members": 3200000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21459-nYh85uj2Fuwr.jpg"
+  },
+  {
+    "seedTitle": "Steins;Gate",
+    "title": "Steins;Gate",
+    "score": 9.07,
+    "members": 2700000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9253-tIUXF2gfU8Sg.jpg"
+  },
+  {
+    "seedTitle": "Hunter x Hunter (2011)",
+    "title": "Hunter x Hunter",
+    "score": 9.04,
+    "members": 2700000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11061-y5gsT1hoHuHw.png"
+  },
+  {
+    "seedTitle": "Code Geass",
+    "title": "Code Geass: Lelouch of the Rebellion",
+    "score": 8.7,
+    "members": 2300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx126830-Mx56p5DMIjiq.png"
+  },
+  {
+    "seedTitle": "One Piece",
+    "title": "One Piece",
+    "score": 8.7,
+    "members": 2300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21-ELSYx3yMPcKM.jpg"
+  },
+  {
+    "seedTitle": "Vinland Saga",
+    "title": "Vinland Saga",
+    "score": 8.75,
+    "members": 1500000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101348-2fhDFPCuMNiz.jpg"
+  },
+  {
+    "seedTitle": "Spy x Family",
+    "title": "Spy x Family",
+    "score": 8.6,
+    "members": 2000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx140960-Kb6R5nYQfjmP.jpg"
+  },
+  {
+    "seedTitle": "Chainsaw Man",
+    "title": "Chainsaw Man",
+    "score": 8.4,
+    "members": 2000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx127230-DdP4vAdssLoz.png"
+  },
+  {
+    "seedTitle": "Tokyo Ghoul",
+    "title": "Tokyo Ghoul",
+    "score": 7.8,
+    "members": 2700000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b20605-k665mVkSug8D.jpg"
+  },
+  {
+    "seedTitle": "Violet Evergarden",
+    "title": "Violet Evergarden",
+    "score": 8.6,
+    "members": 1900000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21827-ubzq619ZA2E9.png"
+  },
+  {
+    "seedTitle": "Made in Abyss",
+    "title": "Made in Abyss",
+    "score": 8.7,
+    "members": 1400000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx97986-TQ7dCgbS3y5s.jpg"
+  },
+  {
+    "seedTitle": "Cowboy Bebop",
+    "title": "Cowboy Bebop",
+    "score": 8.75,
+    "members": 2000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1-GCsPm7waJ4kS.png"
+  },
+  {
+    "seedTitle": "Re:Zero",
+    "title": "Re:Zero − Starting Life in Another World",
+    "score": 8.3,
+    "members": 2300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21355-wRVUrGxpvIQQ.jpg"
+  },
+  {
+    "seedTitle": "Sword Art Online",
+    "title": "Sword Art Online",
+    "score": 7.2,
+    "members": 3300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11757-SxYDUzdr9rh2.jpg"
+  },
+  {
+    "seedTitle": "Fairy Tail",
+    "title": "Fairy Tail",
+    "score": 7.6,
+    "members": 1900000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b6702-KI4qgSMyI8Pm.png"
+  },
+  {
+    "seedTitle": "Dragon Ball Z",
+    "title": "Dragon Ball Z",
+    "score": 8.16,
+    "members": 2300000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx813-ZhnFNOeCU5dQ.png"
+  },
+  {
+    "seedTitle": "Mob Psycho 100",
+    "title": "Mob Psycho 100",
+    "score": 8.5,
+    "members": 1700000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21507-6YUSbh2m0N1p.jpg"
+  },
+  {
+    "seedTitle": "The Promised Neverland",
+    "title": "The Promised Neverland",
+    "score": 8.5,
+    "members": 2000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101759-8UR7r9MNVpz2.jpg"
+  },
+  {
+    "seedTitle": "Fruits Basket",
+    "title": "Fruits Basket (2019)",
+    "score": 8.3,
+    "members": 1000000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105334-AZwEdMu4KFtV.jpg"
+  },
+  {
+    "seedTitle": "Haikyuu",
+    "title": "Haikyuu!!",
+    "score": 8.4,
+    "members": 1900000,
+    "imageUrl": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20464-ooZUyBe4ptp9.png"
+  }
 ]
