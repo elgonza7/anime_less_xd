@@ -3,6 +3,7 @@ import AnimatedNumber from "./AnimatedNumber";
 
 export default function CompareCard({
   side,
+  itemKey,
   imageUrl,
   label,
   value,
@@ -30,13 +31,15 @@ export default function CompareCard({
   return (
     <motion.button
       type="button"
+      layout
+      layoutId={itemKey}
       disabled={disabled}
       onClick={() => onClick(side)}
-      initial={{ opacity: 0, x: side === "left" ? -50 : 50 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       whileHover={!disabled ? { scale: 1.015 } : {}}
       whileTap={!disabled ? { scale: 0.985 } : {}}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      transition={{ layout: { duration: 0.6, ease: "easeInOut" }, opacity: { duration: 0.25 } }}
       className={`group relative h-[min(70vh,36rem)] w-full overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors sm:h-[min(85vh,54rem)] sm:w-[min(40vw,34rem)] ${borderClass} ${
         disabled ? "cursor-default" : "cursor-pointer"
       }`}
