@@ -27,3 +27,26 @@ export async function fetchVideoStats(videoId) {
   cache.set(videoId, parsed);
   return parsed;
 }
+
+// resuelve un opening a un videoId real. esto cuesta 100 units de cuota
+// (bastante caro), por eso solo se llama una vez por opening -- ver
+// services/openingsCacheService.js, que guarda el resultado en Firestore
+// para que nadie mas tenga que volver a buscarlo.
+export async function searchOfficialVideo(query) {
+  if (!API_KEY) throw new Error("Falta VITE_YOUTUBE_API_KEY en el .env");
+
+  const url = `${BASE_URL}/search?part=snippet&type=video&maxResults=1&q=${encodeURIComponent(query)}&key=${API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`YouTube search respondio ${res.status}`);
+
+  const json = await res.json();
+  const item = json.items?.[0];
+  if (!item) throw new Error(`YouTube no encontro nada para "${query}"`);
+
+  return {
+    videoId: item.id.videoId,
+    resolvedTitle: item.snippet.title,
+    channelTitle: item.snippet.channelTitle,
+    thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+  };
+}

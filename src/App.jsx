@@ -8,11 +8,13 @@ import LoginGate from "./components/LoginGate";
 import { useAuth } from "./hooks/useAuth";
 import { useGame } from "./hooks/useGame";
 import { useTheme } from "./hooks/useTheme";
+import { useMute } from "./hooks/useMute";
 
 function App() {
   const { user } = useAuth();
   const game = useGame();
   const { theme, toggleTheme } = useTheme();
+  const { muted, toggleMuted } = useMute();
   const [view, setView] = useState("game"); // game | results | leaderboard
   const [finishedScore, setFinishedScore] = useState(0);
 
@@ -32,6 +34,8 @@ function App() {
         user={user}
         theme={theme}
         onToggleTheme={toggleTheme}
+        muted={muted}
+        onToggleMuted={toggleMuted}
         onGoHome={goHome}
         onGoLeaderboard={() => setView("leaderboard")}
       />

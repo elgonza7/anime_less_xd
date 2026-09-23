@@ -3,11 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // datos de episodios: los escribe unicamente la Cloud Function (Admin SDK,
-    // que ignora estas reglas). el cliente solo lee, nunca escribe.
+    // datos de episodios: los escribe unicamente el script de GitHub Actions
+    // (Admin SDK, que ignora estas reglas). el cliente solo lee, nunca escribe.
     match /episodeRatings/{seriesId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // cache de openings resueltos (anime+opening -> videoId de youtube). se
+    // llena solo, la primera vez que alguien juega esa ronda (ver
+    // src/services/openingsCacheService.js). publico y sin auth porque jugar
+    // no requiere login, y el dato en si no es sensible.
+    match /openingsCache/{openingId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
     }
 
     // leaderboard: para ver el top hay que estar logueado con Google (asi lo

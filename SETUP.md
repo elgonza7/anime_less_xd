@@ -42,6 +42,8 @@ firebase deploy --only firestore:rules
 ```
 
 (El `.firebaserc` ya apunta a `animeless-e07bf`, no hace falta `firebase use`.)
+Si ya habías corrido esto antes, volvé a correrlo — se agregó la colección
+`openingsCache` a las reglas.
 
 Esto sube `firestore.rules`: leaderboard requiere login, `episodeRatings` es solo lectura.
 **Importante:** esto NO necesita el plan Blaze — el error que te salió
@@ -94,16 +96,15 @@ Google Cloud Console → APIs & Services → Credentials → esa key → **Restr
 en tu `.env` local antes de deployar a producción. Nunca la subas a GitHub (`.env` ya
 está en `.gitignore`).
 
-Si en algún momento querés ampliar la lista de openings, editá
-`scripts/resolve-openings.mjs` y corré:
-
-```bash
-node --env-file=.env scripts/resolve-openings.mjs
-```
-
-Esto vuelve a generar `src/data/openingsSeed.json`. Revisá a mano el `resolvedTitle` /
-`channelTitle` de cada uno: la búsqueda de YouTube a veces trae un cover o una
-compilación en vez del opening oficial.
+El catálogo de openings (`src/data/openingsCatalog.js`) tiene 100 animes, pero **no**
+se resuelven todos de una — buscar un opening en YouTube (`search.list`) cuesta 100
+units de cuota, y resolver los 100 de una se comería el límite gratis diario entero.
+En cambio, cada opening se resuelve **la primera vez que sale en una partida** y
+después queda guardado para siempre en Firestore (`openingsCache`), así nadie más
+tiene que volver a buscarlo — el catálogo se va completando solo con el uso normal,
+sin gastar cuota de más. Si en algún momento un opening resuelto queda mal (trajo un
+cover en vez del oficial), borrá ese documento puntual en Firestore Console
+(colección `openingsCache`) y se va a volver a resolver la próxima vez que salga.
 
 ## 7. Deploy del front (Vercel)
 

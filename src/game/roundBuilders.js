@@ -1,9 +1,10 @@
 import { fetchAnimeByTitle } from "../services/jikanService";
 import { fetchVideoStats } from "../services/youtubeService";
+import { resolveOpening } from "../services/openingsCacheService";
 import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from "../services/episodeService";
 import { ANIME_TITLES_SEED } from "../data/animeTitlesSeed";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
-import openingsSeed from "../data/openingsSeed.json";
+import { OPENINGS_CATALOG } from "../data/openingsCatalog";
 import { pickTwoDistinct } from "./utils";
 
 export class EpisodesNotReadyError extends Error {}
@@ -73,13 +74,17 @@ export async function buildFandomRound(usedTitles) {
   };
 }
 
-export async function buildOpeningRound(usedIds) {
-  const pool = openingsSeed.filter((o) => !usedIds.has(o.videoId));
-  const [opA, opB] = pickTwoDistinct(pool.length >= 2 ? pool : openingsSeed);
+export async function buildOpeningRound(usedKeys) {
+  const pool = OPENINGS_CATALOG.filter((o) => !usedKeys.has(o.key));
+  const [catalogA, catalogB] = pickTwoDistinct(pool.length >= 2 ? pool : OPENINGS_CATALOG);
+
+  // resolveOpening solo pega a youtube "search" (caro) la primera vez que se
+  // pide ese opening puntual; despues queda cacheado en Firestore para siempre.
+  const [opA, opB] = await Promise.all([resolveOpening(catalogA), resolveOpening(catalogB)]);
   const [statsA, statsB] = await Promise.all([fetchVideoStats(opA.videoId), fetchVideoStats(opB.videoId)]);
 
   return {
-    usedKeys: [opA.videoId, opB.videoId],
+    usedKeys: [catalogA.key, catalogB.key],
     left: {
       label: `${opA.anime} — ${opA.opening}`,
       subLabel: `▶️ ${fmt(statsA.viewCount)} views`,

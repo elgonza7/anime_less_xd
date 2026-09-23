@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { getTopScores, getUserRank } from "../services/leaderboardService";
 
-function Row({ rank, displayName, photoURL, totalPoints, highlight }) {
+function Row({ rank, displayName, photoURL, totalPoints, highlight, index }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
       className={`flex items-center gap-3 rounded-xl px-4 py-2 ${
         highlight ? "bg-violet-600/20 ring-1 ring-violet-500" : "bg-panel"
       }`}
@@ -12,7 +16,7 @@ function Row({ rank, displayName, photoURL, totalPoints, highlight }) {
       {photoURL && <img src={photoURL} alt="" className="h-8 w-8 rounded-full" />}
       <span className="flex-1 truncate font-semibold">{displayName || "Anonymous"}</span>
       <span className="font-bold text-violet-400">{totalPoints} pts</span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -20,20 +24,31 @@ export default function Leaderboard({ user, onBack }) {
   const [top, setTop] = useState(null);
   const [myRank, setMyRank] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let alive = true;
     setLoading(true);
-    Promise.all([getTopScores(10), getUserRank(user.uid)]).then(([topScores, rank]) => {
-      if (!alive) return;
-      setTop(topScores);
-      setMyRank(rank);
-      setLoading(false);
-    });
+    setError(null);
+    Promise.all([getTopScores(10), getUserRank(user.uid)])
+      .then(([topScores, rank]) => {
+        if (!alive) return;
+        setTop(topScores);
+        setMyRank(rank);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!alive) return;
+        console.error("couldn't load leaderboard:", err);
+        setError("Couldn't load the leaderboard. Double check Firestore is set up (see SETUP.md).");
+        setLoading(false);
+      });
     return () => {
       alive = false;
     };
   }, [user.uid]);
+
+  useEffect(() => load(), [load]);
 
   const isUserInTop = top?.some((row) => row.uid === user.uid);
 
@@ -43,16 +58,25 @@ export default function Leaderboard({ user, onBack }) {
 
       {loading && <p className="text-center opacity-60">Loading...</p>}
 
-      {!loading && (
+      {error && (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <p className="text-sm text-red-400">{error}</p>
+          <button onClick={load} className="rounded-full bg-violet-600 px-5 py-2 font-bold text-white hover:bg-violet-500">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
         <div className="flex flex-col gap-2">
-          {top.map((row) => (
-            <Row key={row.uid} {...row} highlight={row.uid === user.uid} />
+          {top.map((row, i) => (
+            <Row key={row.uid} {...row} index={i} highlight={row.uid === user.uid} />
           ))}
 
           {myRank && !isUserInTop && (
             <>
               <p className="text-center text-lg opacity-40">⋯</p>
-              <Row {...myRank} highlight />
+              <Row {...myRank} index={top.length} highlight />
             </>
           )}
 

@@ -15,8 +15,9 @@ const BUILDERS = {
   episode: buildEpisodeRound,
 };
 
-// un solo "run" que recorre las 4 categorias en orden, sumando puntos en todas.
-// fases: intro -> loading -> ready -> revealed -> (loop) -> intro (siguiente) -> ... -> finished
+// un solo "run" que recorre las 4 categorias en orden, sumando puntos en todas,
+// sin botones intermedios: todo avanza solo, el jugador solo tiene que elegir.
+// fases: intro -> loading -> ready -> revealed -> (loop) -> category-recap -> intro (siguiente) -> ... -> finished
 export function useGame() {
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -29,9 +30,12 @@ export function useGame() {
   const [skipNotice, setSkipNotice] = useState(null);
 
   const usedKeysRef = useRef(new Set());
+  const loadingRef = useRef(false); // evita cargas duplicadas (doble-render en dev, dobles clicks, etc.)
   const category = CATEGORIES[categoryIndex];
 
   const loadRound = useCallback(async (catId) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setPhase("loading");
     setErrorMessage(null);
     try {
@@ -42,31 +46,34 @@ export function useGame() {
     } catch (err) {
       if (err instanceof EpisodesNotReadyError) {
         setSkipNotice(`Skipped "${CATEGORIES.find((c) => c.id === catId)?.label}" — data isn't synced yet.`);
-        advanceToNextCategory(catId);
-        return;
+        goToRecapOrFinish(catId);
+      } else {
+        setErrorMessage(`Couldn't load this round: ${err.message}`);
+        setPhase("error");
       }
-      setErrorMessage(`Couldn't load this round: ${err.message}`);
-      setPhase("error");
+    } finally {
+      loadingRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const advanceToNextCategory = useCallback(
-    (currentCatId) => {
-      const currentIndex = CATEGORIES.findIndex((c) => c.id === currentCatId);
-      usedKeysRef.current = new Set();
-      setRoundNumber(1);
-      setCategoryScore(0);
+  // pasa por una pantalla de recap ("sacaste 3/5") antes de la siguiente categoria
+  const goToRecapOrFinish = useCallback((currentCatId) => {
+    const currentIndex = CATEGORIES.findIndex((c) => c.id === currentCatId);
+    if (currentIndex >= CATEGORIES.length - 1) {
+      setPhase("finished");
+      return;
+    }
+    setPhase("category-recap");
+  }, []);
 
-      if (currentIndex >= CATEGORIES.length - 1) {
-        setPhase("finished");
-        return;
-      }
-      setCategoryIndex(currentIndex + 1);
-      setPhase("intro");
-    },
-    []
-  );
+  const continueAfterRecap = useCallback(() => {
+    setCategoryIndex((i) => i + 1);
+    setRoundNumber(1);
+    setCategoryScore(0);
+    usedKeysRef.current = new Set();
+    setPhase("intro");
+  }, []);
 
   const beginRun = useCallback(() => {
     setCategoryIndex(0);
@@ -99,19 +106,20 @@ export function useGame() {
     [phase, round]
   );
 
-  const nextRound = useCallback(() => {
+  // se llama sola (con un timer en GameScreen) despues de mostrar el resultado de la ronda
+  const advanceRound = useCallback(() => {
     setSkipNotice(null);
     if (roundNumber >= ROUNDS_PER_CATEGORY) {
-      advanceToNextCategory(category.id);
+      goToRecapOrFinish(category.id);
       return;
     }
     setRoundNumber((n) => n + 1);
     loadRound(category.id);
-  }, [roundNumber, category, loadRound, advanceToNextCategory]);
+  }, [roundNumber, category, loadRound, goToRecapOrFinish]);
 
   const retryRound = useCallback(() => loadRound(category.id), [category, loadRound]);
 
-  const skipCategory = useCallback(() => advanceToNextCategory(category.id), [category, advanceToNextCategory]);
+  const skipCategory = useCallback(() => goToRecapOrFinish(category.id), [category, goToRecapOrFinish]);
 
   return {
     category,
@@ -129,7 +137,8 @@ export function useGame() {
     beginRun,
     startCategoryRounds,
     choose,
-    nextRound,
+    advanceRound,
+    continueAfterRecap,
     retryRound,
     skipCategory,
   };

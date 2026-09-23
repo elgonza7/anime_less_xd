@@ -1,25 +1,46 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import CompareCard from "./CompareCard";
 import ProgressDots from "./ProgressDots";
 import { ROUNDS_PER_CATEGORY } from "../game/categories";
+import { playCorrect, playWrong, playCategoryComplete } from "../game/sounds";
+
+const REVEAL_DELAY_MS = 1400;
+const RECAP_DELAY_MS = 2200;
 
 export default function GameScreen({ game, onFinished }) {
   const { category, phase } = game;
-  const startedRef = useRef(false);
 
   useEffect(() => {
     if (phase === "finished") onFinished(game.totalScore);
   }, [phase, game.totalScore, onFinished]);
 
-  // no queremos un boton de "empezar": apenas entra a una categoria nueva, arranca sola.
+  // arranca la categoria sola, sin boton
   useEffect(() => {
-    if (phase === "intro") {
-      startedRef.current = true;
-      game.startCategoryRounds();
-    }
+    if (phase === "intro") game.startCategoryRounds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, category.id]);
+
+  // suena y avanza solo despues de mostrar quien gano
+  useEffect(() => {
+    if (phase !== "revealed" || !game.round || !game.lastPick) return;
+    const otherSide = game.lastPick === "left" ? "right" : "left";
+    const won = game.round[game.lastPick].value >= game.round[otherSide].value;
+    (won ? playCorrect : playWrong)();
+
+    const timer = setTimeout(game.advanceRound, REVEAL_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // recap de la categoria -> suena y sigue solo a la siguiente
+  useEffect(() => {
+    if (phase !== "category-recap") return;
+    playCategoryComplete();
+    const timer = setTimeout(game.continueAfterRecap, RECAP_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   if (phase === "error") {
     return (
@@ -37,11 +58,36 @@ export default function GameScreen({ game, onFinished }) {
     );
   }
 
+  if (phase === "category-recap") {
+    return (
+      <motion.div
+        key="recap"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="mx-auto flex max-w-md flex-col items-center gap-3 text-center"
+      >
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 16 }}
+          className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500 text-5xl text-white"
+        >
+          ✓
+        </motion.span>
+        <p className="text-sm uppercase tracking-widest text-violet-400">{category.label}</p>
+        <p className="text-6xl font-black">
+          {game.categoryScore}
+          <span className="text-3xl opacity-50">/{ROUNDS_PER_CATEGORY}</span>
+        </p>
+      </motion.div>
+    );
+  }
+
   const revealed = phase === "revealed";
   const isLoading = phase === "intro" || phase === "loading" || phase === "finished" || !game.round;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col items-center gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col items-center gap-6">
       <AnimatePresence mode="wait">
         <motion.div
           key={category.id}
@@ -63,7 +109,7 @@ export default function GameScreen({ game, onFinished }) {
       <ProgressDots total={ROUNDS_PER_CATEGORY} current={game.roundNumber - (revealed ? 0 : 1)} />
 
       {isLoading ? (
-        <div className="flex h-96 items-center justify-center sm:h-[30rem]">
+        <div className="flex h-96 items-center justify-center sm:h-[32rem]">
           <motion.span
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -93,19 +139,6 @@ export default function GameScreen({ game, onFinished }) {
           />
         </div>
       )}
-
-      <AnimatePresence>
-        {revealed && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={game.nextRound}
-            className="rounded-full bg-violet-600 px-8 py-3 text-lg font-bold text-white hover:bg-violet-500"
-          >
-            {game.roundNumber >= ROUNDS_PER_CATEGORY ? "Next category →" : "Next →"}
-          </motion.button>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
