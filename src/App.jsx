@@ -10,7 +10,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useGame } from "./hooks/useGame";
 import { useTheme } from "./hooks/useTheme";
 import { useMute } from "./hooks/useMute";
-import { hasPlayedToday } from "./services/leaderboardService";
+import { checkGameStatus } from "./services/leaderboardService";
 
 function App() {
   const { user } = useAuth();
@@ -21,13 +21,13 @@ function App() {
   const [finishedScore, setFinishedScore] = useState(0);
   const [alreadyPlayedToday, setAlreadyPlayedToday] = useState(null); // null = checking
 
+  // esto corre para CUALQUIERA, con o sin sesion -- antes solo chequeaba la
+  // cuenta, asi que sin loguearse se podia rejugar infinitas veces con solo
+  // volver al inicio. ahora tambien se chequea por IP en el servidor.
   useEffect(() => {
-    if (!user) {
-      setAlreadyPlayedToday(false);
-      return;
-    }
     let alive = true;
-    hasPlayedToday(user.uid).then((played) => {
+    setAlreadyPlayedToday(null);
+    checkGameStatus(user || null).then((played) => {
       if (alive) setAlreadyPlayedToday(played);
     });
     return () => {
@@ -59,19 +59,19 @@ function App() {
 
       <main className="flex flex-1 items-start justify-center p-3 pt-4 sm:p-4 sm:pt-6">
         <AnimatePresence mode="wait">
-          {view === "game" && user && alreadyPlayedToday === null && (
+          {view === "game" && alreadyPlayedToday === null && (
             <motion.p key="checking" exit={{ opacity: 0 }} className="text-lg opacity-60">
               Loading...
             </motion.p>
           )}
 
-          {view === "game" && (!user || alreadyPlayedToday === false) && (
+          {view === "game" && alreadyPlayedToday === false && (
             <motion.div key="game" exit={{ opacity: 0 }} className="w-full">
               <GameScreen game={game} onFinished={handleFinished} />
             </motion.div>
           )}
 
-          {view === "game" && user && alreadyPlayedToday === true && (
+          {view === "game" && alreadyPlayedToday === true && (
             <motion.div key="already-played" exit={{ opacity: 0 }} className="w-full">
               <AlreadyPlayedScreen onGoToLeaderboard={() => setView("leaderboard")} />
             </motion.div>

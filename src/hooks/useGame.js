@@ -25,7 +25,7 @@ export function useGame() {
   const loadingRef = useRef(false); // evita cargas duplicadas (doble-render en dev, dobles clicks, etc.)
   const category = CATEGORIES[categoryIndex];
 
-  const loadRound = useCallback(async (catId, carryLeft) => {
+  const loadRound = useCallback(async (catId, carryLeft, roundNum) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setPhase("loading");
@@ -35,11 +35,11 @@ export function useGame() {
 
       let left = carryLeft;
       if (!left) {
-        left = await fetchEntry(usedKeysRef.current);
+        left = await fetchEntry(usedKeysRef.current, `${catId}:r${roundNum}:left`);
         usedKeysRef.current.add(left.itemKey);
       }
 
-      const right = await fetchEntry(usedKeysRef.current);
+      const right = await fetchEntry(usedKeysRef.current, `${catId}:r${roundNum}:right`);
       usedKeysRef.current.add(right.itemKey);
 
       setRound({ left, right });
@@ -89,7 +89,7 @@ export function useGame() {
   }, []);
 
   const startCategoryRounds = useCallback(() => {
-    loadRound(category.id);
+    loadRound(category.id, undefined, 1);
   }, [category, loadRound]);
 
   const choose = useCallback(
@@ -116,14 +116,15 @@ export function useGame() {
       goToRecapOrFinish(category.id);
       return;
     }
-    setRoundNumber((n) => n + 1);
-    loadRound(category.id, round?.right);
+    const nextRoundNum = roundNumber + 1;
+    setRoundNumber(nextRoundNum);
+    loadRound(category.id, round?.right, nextRoundNum);
   }, [roundNumber, category, loadRound, goToRecapOrFinish, round]);
 
   // en un retry despues de error, si ya habia una izquierda "campeona" la
   // mantenemos (round todavia tiene los datos de la ultima ronda que si cargo).
   const retryRound = useCallback(
-    () => loadRound(category.id, roundNumber > 1 ? round?.right : undefined),
+    () => loadRound(category.id, roundNumber > 1 ? round?.right : undefined, roundNumber),
     [category, loadRound, roundNumber, round]
   );
 

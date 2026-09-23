@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CATEGORIES, ROUNDS_PER_CATEGORY } from "../game/categories";
-import { submitScore, AlreadyPlayedTodayError } from "../services/leaderboardService";
+import {
+  submitScore,
+  markPlayedAnonymously,
+  getTopScores,
+  getUserRank,
+  AlreadyPlayedTodayError,
+} from "../services/leaderboardService";
 import { playFinale } from "../game/sounds";
+import RankReveal from "./RankReveal";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
-const AUTO_REDIRECT_MS = 3500;
 
 export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard }) {
   const [saveState, setSaveState] = useState(user ? "saving" : "no-account");
+  const [leaderboard, setLeaderboard] = useState(null); // { top, myRank } | null
   const alreadySubmitted = useRef(false);
 
   useEffect(() => {
@@ -16,8 +23,14 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
   }, []);
 
   useEffect(() => {
-    if (!user || alreadySubmitted.current) return;
+    if (alreadySubmitted.current) return;
     alreadySubmitted.current = true;
+
+    if (!user) {
+      markPlayedAnonymously();
+      return;
+    }
+
     submitScore(user, score)
       .then(() => {
         setSaveState("saved");
@@ -35,13 +48,19 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, score]);
 
-  // apenas termina de guardar (o falla), directo al leaderboard. no hay
-  // "jugar de nuevo": es un intento por dia, no tiene sentido ofrecerlo.
+  // apenas se sabe que el puntaje de hoy quedo guardado (esta corrida o una
+  // anterior), traemos el leaderboard para mostrarlo aca mismo -- ya no hay
+  // que ir a otra pantalla a verlo.
   useEffect(() => {
-    if (saveState === "saving") return;
-    const timer = setTimeout(onGoToLeaderboard, AUTO_REDIRECT_MS);
-    return () => clearTimeout(timer);
-  }, [saveState, onGoToLeaderboard]);
+    if (!user || saveState === "saving") return;
+    let alive = true;
+    Promise.all([getTopScores(5), getUserRank(user.uid)]).then(([top, myRank]) => {
+      if (alive && myRank) setLeaderboard({ top, myRank });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user, saveState]);
 
   const pct = Math.round((score / MAX_SCORE) * 100);
   const emoji = pct >= 80 ? "🔥" : pct >= 50 ? "🙂" : "💀";
@@ -84,11 +103,18 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
         <p className="text-sm opacity-70">Sign in with Google next time so your score counts on the leaderboard.</p>
       )}
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-        <button onClick={onGoToLeaderboard} className="rounded-full bg-violet-600 px-6 py-3 font-bold text-white hover:bg-violet-500">
-          View leaderboard →
-        </button>
-      </motion.div>
+      {user && leaderboard ? (
+        <RankReveal myRank={leaderboard.myRank} top={leaderboard.top} myUid={user.uid} />
+      ) : (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+          <button
+            onClick={onGoToLeaderboard}
+            className="rounded-full bg-violet-600 px-6 py-3 font-bold text-white hover:bg-violet-500"
+          >
+            View leaderboard →
+          </button>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

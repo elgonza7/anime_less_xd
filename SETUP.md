@@ -162,6 +162,20 @@ Después de guardar las variables, hacé un redeploy.
   fecha UTC) y además bloquea reintentos desde la misma IP con otra cuenta el mismo día. Esto
   evita tanto que alguien edite su propio puntaje desde la consola del navegador como que
   juegue varias veces por día para mejorar su posición en el ranking.
+- **El bloqueo aplica aunque no estés logueado**: `api/game-status.js` (público, sin login)
+  chequea por IP si ya se jugó hoy, y `api/mark-played.js` marca esa IP al terminar un run
+  sin sesión. Antes esto solo se chequeaba por cuenta, así que sin loguearse se podía volver
+  a jugar infinitas veces con solo volver al inicio. El front llama a `game-status` en cada
+  carga (con o sin sesión) para decidir si mostrar el juego o la pantalla de "ya jugaste hoy".
+  Esto es una restricción temporal a pedido del cliente mientras se prueba en producción —
+  en algún momento hay que agregar una excepción para que la cuenta del propio dueño del
+  proyecto pueda jugar sin este límite.
+- **Los picks (qué anime, qué episodio, qué opening) son deterministicos, no secuenciales**:
+  cada uno se deriva de una key fija (`categoria:ronda:lado:intento`) combinada con la fecha
+  UTC — ver `src/game/dailySeed.js`. Esto es a propósito: con un generador secuencial normal,
+  jugar una segunda vez el mismo día sin recargar la página (por ejemplo tocando el logo)
+  seguía consumiendo la cola de números random desde donde había quedado y te daba otra
+  combinación de animes en vez de la misma.
 - **No se guarda historial de partidas**: por diseño, cada documento en `scores/{uid}` guarda
   solo el último puntaje jugado (se sobreescribe, no se acumula), para no gastar de más en
   lecturas/escrituras de Firestore. El leaderboard siempre refleja el intento más reciente de

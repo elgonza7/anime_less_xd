@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase/client";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
-import { dailyRandomInt } from "../game/dailySeed";
+import { seededRandomInt } from "../game/dailySeed";
 
 const cache = new Map();
 
@@ -24,13 +24,13 @@ export async function fetchEpisodesFor(animeEntry) {
   return data;
 }
 
-export function pickRandomAnimeWithEpisodes() {
-  const entry = ANIME_IMDB_SEED[dailyRandomInt(ANIME_IMDB_SEED.length)];
+export function pickRandomAnimeWithEpisodes(seedContext, attempt) {
+  const entry = ANIME_IMDB_SEED[seededRandomInt(ANIME_IMDB_SEED.length, seedContext, "anime", attempt)];
   return entry;
 }
 
-export function pickRandomEpisode(episodes) {
+export function pickRandomEpisode(episodes, seedContext, attempt) {
   const withVotes = episodes.filter((ep) => ep.votes >= 10);
   const pool = withVotes.length > 0 ? withVotes : episodes;
-  return pool[dailyRandomInt(pool.length)];
+  return pool[seededRandomInt(pool.length, seedContext, "episode", attempt)];
 }

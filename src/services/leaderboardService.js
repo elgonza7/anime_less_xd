@@ -5,10 +5,6 @@ const SCORES_COLLECTION = "scores";
 
 export class AlreadyPlayedTodayError extends Error {}
 
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // el puntaje ya NO se escribe directo a firestore desde el cliente (mira
 // firestore.rules: scores solo se puede leer, nunca escribir desde el
 // browser). todo pasa por /api/submit-score, que valida el token, chequea
@@ -28,14 +24,29 @@ export async function submitScore(user, score) {
   if (!res.ok) throw new Error(`No se pudo guardar el puntaje (${res.status})`);
 }
 
-// chequeo liviano para bloquear el juego ANTES de arrancar una ronda, no solo
-// al momento de guardar. lee directo de firestore (permitido, "scores" es de
-// lectura publica para usuarios logueados).
-export async function hasPlayedToday(uid) {
-  if (!firebaseReady || !uid) return false;
-  const snap = await getDoc(doc(db, SCORES_COLLECTION, uid));
-  if (!snap.exists()) return false;
-  return snap.data().lastPlayedDate === todayUTC();
+// chequea si YA se jugo hoy -- por IP (funciona sin login) y por cuenta si
+// hay una sesion activa. antes esto solo miraba la cuenta, por eso alguien
+// sin loguearse podia rejugar infinitas veces con solo volver al inicio.
+export async function checkGameStatus(user) {
+  const headers = {};
+  if (user) {
+    const idToken = await user.getIdToken();
+    headers.Authorization = `Bearer ${idToken}`;
+  }
+  const res = await fetch("/api/game-status", { headers });
+  if (!res.ok) return false; // si el chequeo falla, no bloqueamos al usuario de jugar
+  const data = await res.json();
+  return Boolean(data.alreadyPlayed);
+}
+
+// se llama al terminar un run SIN estar logueado, para marcar la IP. si esta
+// logueado no hace falta: api/submit-score.js ya marca IP + cuenta juntas.
+export async function markPlayedAnonymously() {
+  try {
+    await fetch("/api/mark-played", { method: "POST" });
+  } catch (err) {
+    console.warn("no se pudo marcar el intento anonimo:", err);
+  }
 }
 
 export async function getTopScores(topN = 10) {

@@ -9,30 +9,13 @@
 // Environment Variables), con el mismo JSON de cuenta de servicio que se usa
 // para el workflow de GitHub Actions. Ver SETUP.md.
 
-import { createHash } from "node:crypto";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getClientIp, hashIp, todayUTC, getFirebaseApp } from "./_lib/ip.js";
 
 const CATEGORIES_COUNT = 4;
 const ROUNDS_PER_CATEGORY = 5;
 const MAX_SCORE = CATEGORIES_COUNT * ROUNDS_PER_CATEGORY;
-
-function getApp() {
-  if (getApps().length) return getApps()[0];
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  return initializeApp({ credential: cert(serviceAccount) });
-}
-
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10); // "2026-09-23"
-}
-
-function clientIp(req) {
-  const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
-  return req.socket?.remoteAddress || "unknown";
-}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -53,7 +36,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const app = getApp();
+  const app = getFirebaseApp();
   const db = getFirestore(app);
 
   let decoded;
@@ -74,8 +57,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const ip = clientIp(req);
-  const ipHash = createHash("sha256").update(ip).digest("hex");
+  const ip = getClientIp(req);
+  const ipHash = hashIp(ip);
   const ipRef = db.collection("dailyIPs").doc(`${today}_${ipHash}`);
   const ipSnap = await ipRef.get();
   if (ipSnap.exists && ipSnap.data().uid !== uid) {
