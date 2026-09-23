@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // datos de episodios: los escribe unicamente la Cloud Function (Admin SDK,
+    // que ignora estas reglas). el cliente solo lee, nunca escribe.
+    match /episodeRatings/{seriesId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // leaderboard: para ver el top hay que estar logueado con Google (asi lo
+    // pidio el cliente). cada usuario solo puede tocar su propio documento.
+    //
+    // ojo: esto no evita 100% que alguien logueado mande un totalPoints
+    // inventado desde la consola del navegador. para una app de facultad esta
+    // bien, pero si esto escala en serio hay que mover la suma de puntos a
+    // una Cloud Function callable en vez de escribir directo desde el cliente.
+    match /scores/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
