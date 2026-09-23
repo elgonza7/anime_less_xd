@@ -1,4 +1,4 @@
-# Setup de AniVersus
+# Setup de AnimeLess
 
 ## 1. Instalar dependencias
 
@@ -6,25 +6,19 @@
 npm install
 ```
 
-## 2. Crear el proyecto de Firebase
+## 2. Proyecto de Firebase
 
-1. Entrá a https://console.firebase.google.com y creá un proyecto nuevo (gratis, plan Spark alcanza).
-2. **Authentication** → Sign-in method → habilitá **Google**.
-3. **Firestore Database** → creá la base (modo producción, cualquier región).
-4. **Project settings** → **Your apps** → agregá una Web App → copiá el objeto `firebaseConfig`.
-5. Pegá esos valores en `.env` (usá `.env.example` como plantilla):
+Ya está creado (`animeless-e07bf`) y sus claves ya están puestas en `.env`. Solo falta
+que en la consola de Firebase (https://console.firebase.google.com/project/animeless-e07bf):
 
-```
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-```
+1. **Authentication** → Sign-in method → habilitá **Google** (si todavía no lo hiciste).
+2. **Firestore Database** → creá la base si no existe (modo producción, cualquier región).
+3. **Authentication → Settings → Authorized domains** → agregá el dominio donde vayas a
+   deployar (Vercel/Render/lo que sea) — `localhost` ya viene autorizado por defecto.
 
-6. En **Authentication → Settings → Authorized domains**, agregá el dominio donde vayas a
-   deployar (Vercel/Render/lo que sea), sino el login con Google no va a andar ahí.
+> Nota: el `apiKey` de Firebase para web **no es un secreto** (a diferencia de la key de
+> YouTube más abajo) — Firebase lo espera embebido en el bundle del cliente, la seguridad
+> real la dan las Firestore Rules, no ocultar esta key. Podés subirla a GitHub sin drama.
 
 ## 3. Correr en local
 
@@ -32,15 +26,16 @@ VITE_FIREBASE_APP_ID=...
 npm run dev
 ```
 
-Sin Firebase configurado la app anda igual (podés jugar), pero el ranking queda
-bloqueado con el mensaje de "iniciá sesión".
+El login con Google y el leaderboard ya deberían andar apenas hagas los pasos de
+Authentication/Firestore de arriba. La categoría de episodios va a aparecer "sin datos"
+hasta que corras la Cloud Function (paso 5).
 
 ## 4. Deployar Firestore rules y Cloud Functions
 
 ```bash
 npm install -g firebase-tools   # si no lo tenés
 firebase login
-firebase use --add              # elegí el proyecto que creaste en el paso 2
+firebase use animeless-e07bf
 cd functions && npm install && cd ..
 firebase deploy --only firestore:rules,functions
 ```

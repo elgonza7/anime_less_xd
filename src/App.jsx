@@ -1,26 +1,23 @@
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
-import Landing from "./components/Landing";
 import GameScreen from "./components/GameScreen";
 import ResultsScreen from "./components/ResultsScreen";
 import Leaderboard from "./components/Leaderboard";
 import LoginGate from "./components/LoginGate";
 import { useAuth } from "./hooks/useAuth";
 import { useGame } from "./hooks/useGame";
+import { useTheme } from "./hooks/useTheme";
 
 function App() {
   const { user } = useAuth();
   const game = useGame();
-  const [view, setView] = useState("landing"); // landing | game | results | leaderboard
+  const { theme, toggleTheme } = useTheme();
+  const [view, setView] = useState("game"); // game | results | leaderboard
   const [finishedScore, setFinishedScore] = useState(0);
 
   const goHome = () => {
-    game.reset();
-    setView("landing");
-  };
-
-  const selectCategory = (categoryId) => {
-    game.startCategory(categoryId);
+    game.beginRun();
     setView("game");
   };
 
@@ -31,29 +28,55 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar user={user} onGoHome={goHome} onGoLeaderboard={() => setView("leaderboard")} />
+      <Navbar
+        user={user}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onGoHome={goHome}
+        onGoLeaderboard={() => setView("leaderboard")}
+      />
 
       <main className="flex flex-1 items-center justify-center p-6">
-        {view === "landing" && <Landing onSelectCategory={selectCategory} />}
+        <AnimatePresence mode="wait">
+          {view === "game" && (
+            <motion.div key="game" exit={{ opacity: 0 }} className="w-full">
+              <GameScreen game={game} onFinished={handleFinished} />
+            </motion.div>
+          )}
 
-        {view === "game" && <GameScreen game={game} onFinished={handleFinished} onExit={goHome} />}
+          {view === "results" && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full"
+            >
+              <ResultsScreen
+                score={finishedScore}
+                user={user}
+                onPlayAgain={goHome}
+                onGoToLeaderboard={() => setView("leaderboard")}
+              />
+            </motion.div>
+          )}
 
-        {view === "results" && (
-          <ResultsScreen
-            score={finishedScore}
-            user={user}
-            onPlayAgain={() => selectCategory(game.categoryId)}
-            onGoToMenu={goHome}
-            onGoToLeaderboard={() => setView("leaderboard")}
-          />
-        )}
-
-        {view === "leaderboard" &&
-          (user ? (
-            <Leaderboard user={user} onBack={goHome} />
-          ) : (
-            <LoginGate message="Iniciá sesión con Google para ver el ranking global." />
-          ))}
+          {view === "leaderboard" && (
+            <motion.div
+              key="leaderboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full"
+            >
+              {user ? (
+                <Leaderboard user={user} onBack={goHome} />
+              ) : (
+                <LoginGate message="Sign in with Google to see the global leaderboard." />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

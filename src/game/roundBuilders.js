@@ -8,6 +8,8 @@ import { pickTwoDistinct } from "./utils";
 
 export class EpisodesNotReadyError extends Error {}
 
+const fmt = (n) => (n || n === 0 ? n.toLocaleString("en-US") : "?");
+
 export async function buildRatingRound(usedTitles) {
   const pool = ANIME_TITLES_SEED.filter((t) => !usedTitles.has(t));
   const [titleA, titleB] = pickTwoDistinct(pool.length >= 2 ? pool : ANIME_TITLES_SEED);
@@ -15,8 +17,8 @@ export async function buildRatingRound(usedTitles) {
 
   return {
     usedKeys: [titleA, titleB],
-    left: { label: a.title, subLabel: `⭐ ${a.score ?? "?"}`, imageUrl: a.imageUrl, value: a.score ?? 0 },
-    right: { label: b.title, subLabel: `⭐ ${b.score ?? "?"}`, imageUrl: b.imageUrl, value: b.score ?? 0 },
+    left: { label: a.title, subLabel: `⭐ ${fmt(a.score)}`, imageUrl: a.imageUrl, value: a.score ?? 0 },
+    right: { label: b.title, subLabel: `⭐ ${fmt(b.score)}`, imageUrl: b.imageUrl, value: b.score ?? 0 },
   };
 }
 
@@ -25,11 +27,10 @@ export async function buildFandomRound(usedTitles) {
   const [titleA, titleB] = pickTwoDistinct(pool.length >= 2 ? pool : ANIME_TITLES_SEED);
   const [a, b] = await Promise.all([fetchAnimeByTitle(titleA), fetchAnimeByTitle(titleB)]);
 
-  const fmt = (n) => (n ? n.toLocaleString("es-AR") : "?");
   return {
     usedKeys: [titleA, titleB],
-    left: { label: a.title, subLabel: `👥 ${fmt(a.members)}`, imageUrl: a.imageUrl, value: a.members ?? 0 },
-    right: { label: b.title, subLabel: `👥 ${fmt(b.members)}`, imageUrl: b.imageUrl, value: b.members ?? 0 },
+    left: { label: a.title, subLabel: `👥 ${fmt(a.members)} members`, imageUrl: a.imageUrl, value: a.members ?? 0 },
+    right: { label: b.title, subLabel: `👥 ${fmt(b.members)} members`, imageUrl: b.imageUrl, value: b.members ?? 0 },
   };
 }
 
@@ -38,18 +39,17 @@ export async function buildOpeningRound(usedIds) {
   const [opA, opB] = pickTwoDistinct(pool.length >= 2 ? pool : openingsSeed);
   const [statsA, statsB] = await Promise.all([fetchVideoStats(opA.videoId), fetchVideoStats(opB.videoId)]);
 
-  const fmt = (n) => n.toLocaleString("es-AR");
   return {
     usedKeys: [opA.videoId, opB.videoId],
     left: {
       label: `${opA.anime} — ${opA.opening}`,
-      subLabel: `▶️ ${fmt(statsA.viewCount)} vistas`,
+      subLabel: `▶️ ${fmt(statsA.viewCount)} views`,
       imageUrl: statsA.thumbnail,
       value: statsA.viewCount,
     },
     right: {
       label: `${opB.anime} — ${opB.opening}`,
-      subLabel: `▶️ ${fmt(statsB.viewCount)} vistas`,
+      subLabel: `▶️ ${fmt(statsB.viewCount)} views`,
       imageUrl: statsB.thumbnail,
       value: statsB.viewCount,
     },
@@ -60,9 +60,7 @@ async function buildEpisodeSide() {
   const entry = pickRandomAnimeWithEpisodes();
   const data = await fetchEpisodesFor(entry);
   if (!data || !data.episodes?.length) {
-    throw new EpisodesNotReadyError(
-      `Todavia no hay datos de episodios para "${entry.anime}". Corre la Cloud Function updateEpisodeRatingsNow al menos una vez.`
-    );
+    throw new EpisodesNotReadyError(`No episode data yet for "${entry.anime}".`);
   }
 
   const episode = pickRandomEpisode(data.episodes);
@@ -70,15 +68,15 @@ async function buildEpisodeSide() {
 
   return {
     key: episode.tconst,
-    label: `${entry.anime} — T${episode.season} Ep. ${episode.episode}`,
-    subLabel: `⭐ ${episode.rating} (${episode.votes.toLocaleString("es-AR")} votos en IMDb)`,
+    label: `${entry.anime} — S${episode.season}E${episode.episode}`,
+    subLabel: `⭐ ${episode.rating} (${fmt(episode.votes)} IMDb votes)`,
     imageUrl: animeInfo?.imageUrl,
     value: episode.rating,
   };
 }
 
 export async function buildEpisodeRound(usedKeys) {
-  if (ANIME_IMDB_SEED.length < 2) throw new EpisodesNotReadyError("Falta configurar animes con tconst de IMDb");
+  if (ANIME_IMDB_SEED.length < 2) throw new EpisodesNotReadyError("No anime configured with an IMDb tconst yet.");
 
   let left = await buildEpisodeSide();
   let right = await buildEpisodeSide();

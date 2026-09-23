@@ -1,28 +1,32 @@
-export const ROUNDS_PER_CATEGORY = 5; // asi lo pidio el cliente, ni una ronda mas ni una menos
+export const ROUNDS_PER_CATEGORY = 5; // client said 5 rounds, not 4, not 6 lol
 
 export const CATEGORIES = [
   {
     id: "rating",
-    label: "Rating de Anime",
+    label: "Anime Rating",
     icon: "⭐",
-    question: "¿Qué anime tiene mejor rating en MyAnimeList?",
+    question: "Which anime has a better rating?",
+    intro: "Guess which anime scores higher on MyAnimeList.",
   },
   {
     id: "episode",
-    label: "Rating de Episodios",
+    label: "Episode Rating",
     icon: "🎬",
-    question: "¿Qué episodio tiene mejor rating en IMDb?",
+    question: "Which episode has a better rating?",
+    intro: "Guess which single episode is rated higher on IMDb.",
   },
   {
     id: "opening",
-    label: "Vistas de Openings",
+    label: "Opening Views",
     icon: "🎵",
-    question: "¿Qué opening tiene más vistas en YouTube?",
+    question: "Which opening has more views?",
+    intro: "Guess which opening theme has more views on YouTube.",
   },
   {
     id: "fandom",
-    label: "Tamaño del Fandom",
+    label: "Fandom Size",
     icon: "👥",
-    question: "¿Qué anime tiene más fans (miembros en MyAnimeList)?",
+    question: "Which anime has a bigger fandom?",
+    intro: "Guess which anime has more members on MyAnimeList.",
   },
 ];

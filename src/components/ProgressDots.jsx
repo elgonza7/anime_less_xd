@@ -4,7 +4,7 @@ export default function ProgressDots({ total, current }) {
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
-          className={`h-2.5 w-2.5 rounded-full transition-colors ${
+          className={`h-3 w-3 rounded-full transition-colors ${
             i < current ? "bg-violet-500" : "bg-panel-border"
           }`}
         />

@@ -1,22 +1,24 @@
-# AniVersus
+# AnimeLess
 
-Juego estilo "more or less" pero de anime. Elegís una categoría, comparás 5 veces
-(izquierda vs derecha), sumás puntos, y si te logueás con Google entrás al ranking global.
+"More or less", pero de anime. Jugás un run continuo de 4 categorías (5 rondas cada
+una): izquierda vs derecha, elegís la que crees que gana. Si te logueás con Google al
+final, tu puntaje entra al ranking global.
 
-## Categorías
+## Categorías (en orden)
 
 | Categoría | Fuente de datos |
 |---|---|
-| ⭐ Rating de anime | Jikan (MyAnimeList) |
-| 🎬 Rating de episodios | Dataset oficial no-comercial de IMDb |
-| 🎵 Vistas de openings | YouTube Data API v3 |
-| 👥 Tamaño del fandom | Miembros en MyAnimeList (proxy, vía Jikan) |
+| ⭐ Anime Rating | Jikan (MyAnimeList) |
+| 🎬 Episode Rating | Dataset oficial no-comercial de IMDb |
+| 🎵 Opening Views | YouTube Data API v3 |
+| 👥 Fandom Size | Miembros en MyAnimeList (proxy, vía Jikan) |
 
 ## Stack
 
-React + Vite + Tailwind v4 en el front. Firebase (Auth con Google + Firestore) para
-login y leaderboard. Una Cloud Function corre todos los días a las 8am (hora Argentina)
-para refrescar los ratings de episodios.
+React + Vite + Tailwind v4 + Framer Motion en el front. Firebase (Auth con Google +
+Firestore) para login y leaderboard. Una Cloud Function corre todos los días a las 8am
+(hora Argentina) para refrescar los ratings de episodios. UI en inglés (para llegar a
+más gente), comentarios de código en español.
 
 ## Correrlo
 
