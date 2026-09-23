@@ -16,7 +16,7 @@ export const ANIME_TITLES_SEED = [
   "My Hero Academia",
   "Steins;Gate",
   "Hunter x Hunter (2011)",
-  "Code Geass",
+  "Code Geass: Lelouch of the Rebellion",
   "One Piece",
   "Vinland Saga",
   "Spy x Family",
