@@ -22,4 +22,5 @@ firebase-debug.log
 
 # credenciales de la cuenta de servicio de Firebase (nunca al repo)
 serviceAccount*.json
+service-account*.json
 *firebase-adminsdk*.json

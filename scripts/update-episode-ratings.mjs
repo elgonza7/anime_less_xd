@@ -15,13 +15,24 @@ import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { ANIME_IMDB_SEED } from "../src/data/animeImdbSeed.js";
 
+function parseServiceAccountJson(raw, source) {
+  try {
+    return JSON.parse(raw.trim());
+  } catch (err) {
+    throw new Error(
+      `El JSON de ${source} no es valido (${err.message}). Longitud recibida: ${raw.length} caracteres. ` +
+        `Revisa que el secret tenga el JSON completo pegado tal cual, sin comillas extra alrededor.`
+    );
+  }
+}
+
 async function loadServiceAccount() {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    return parseServiceAccountJson(process.env.FIREBASE_SERVICE_ACCOUNT, "FIREBASE_SERVICE_ACCOUNT");
   }
   if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
     const raw = await readFile(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, "utf-8");
-    return JSON.parse(raw);
+    return parseServiceAccountJson(raw, process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
   }
   throw new Error(
     "Falta FIREBASE_SERVICE_ACCOUNT (JSON completo, para CI) o FIREBASE_SERVICE_ACCOUNT_PATH (ruta local). Ver SETUP.md."

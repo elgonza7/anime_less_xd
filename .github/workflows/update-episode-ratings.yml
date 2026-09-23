@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # firebase-admin 14.x pide node >=22, con 20 no instala @google-cloud/firestore
 
       - run: npm ci
 
