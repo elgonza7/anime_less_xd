@@ -123,7 +123,8 @@ En **Project Settings → Environment Variables** cargá:
 
 - `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
   `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
-  `VITE_FIREBASE_APP_ID`, `VITE_YOUTUBE_API_KEY` — las mismas que tenés en `.env`.
+  `VITE_FIREBASE_APP_ID`, `VITE_YOUTUBE_API_KEY`, `VITE_TMDB_READ_TOKEN` — las
+  mismas que tenés en `.env`.
 - `FIREBASE_SERVICE_ACCOUNT` — **el mismo JSON completo** de la cuenta de servicio
   que generaste en el paso 5 (Firebase Console → Project settings → Service
   accounts). Esta la usa `api/submit-score.js` (la función que guarda los puntajes)
@@ -167,9 +168,26 @@ Después de guardar las variables, hacé un redeploy.
   sin sesión. Antes esto solo se chequeaba por cuenta, así que sin loguearse se podía volver
   a jugar infinitas veces con solo volver al inicio. El front llama a `game-status` en cada
   carga (con o sin sesión) para decidir si mostrar el juego o la pantalla de "ya jugaste hoy".
-  Esto es una restricción temporal a pedido del cliente mientras se prueba en producción —
-  en algún momento hay que agregar una excepción para que la cuenta del propio dueño del
-  proyecto pueda jugar sin este límite.
+- **Modo dios (solo `gokinflores@gmail.com`)**: mientras se prueba en producción, esa cuenta
+  tiene un toggle 🛡️ en el navbar (a la izquierda del resto de los íconos) que desactiva el
+  límite de un intento por día para sí misma — `api/god-mode.js` guarda el estado en
+  `settings/godMode` en Firestore, y `game-status.js`/`submit-score.js` lo chequean antes de
+  aplicar cualquier bloqueo. Se valida por el email del token verificado en el servidor, no
+  por nada que mande el cliente, así que nadie más puede activarlo así se meta en devtools.
+  Con el toggle apagado, esa cuenta tiene exactamente las mismas reglas que cualquiera.
+- **Desempate invisible por tiempo**: si dos puntajes quedan iguales, gana quien completó el
+  run más rápido (`totalTimeMs`, medido en el cliente desde que arranca el run hasta que
+  termina la última categoría). Nunca se muestra en ningún lado — solo se usa para ordenar.
+  El servidor descarta tiempos poco creíbles (menos de ~300ms por ronda) en vez de premiarlos.
+  Esto necesita un índice compuesto en Firestore (`totalPoints` + `totalTimeMs`) — ya está
+  declarado en `firestore.indexes.json`, hace falta `firebase deploy --only firestore:indexes`
+  para subirlo (si no, `getTopScores`/`getUserRank` van a tirar un link para crearlo a mano).
+- **Portada por episodio (TMDB)**: IMDb no tiene imágenes en su dataset, así que la categoría
+  de episodios mostraba el poster del anime en general. Ahora usa TMDB (`src/services/tmdbService.js`):
+  resuelve el show por el tconst de IMDb que ya teníamos (`/find`, sin volver a buscar por
+  nombre) y trae el fotograma del episodio puntual si existe; si no, sigue cayendo al poster
+  del anime. Necesita `VITE_TMDB_READ_TOKEN` (themoviedb.org → Settings → API → "API Read
+  Access Token").
 - **Los picks (qué anime, qué episodio, qué opening) son deterministicos, no secuenciales**:
   cada uno se deriva de una key fija (`categoria:ronda:lado:intento`) combinada con la fecha
   UTC — ver `src/game/dailySeed.js`. Esto es a propósito: con un generador secuencial normal,

@@ -20,8 +20,10 @@ export function useGame() {
   const [lastPick, setLastPick] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [skipNotice, setSkipNotice] = useState(null);
+  const [totalTimeMs, setTotalTimeMs] = useState(null);
 
   const usedKeysRef = useRef(new Set());
+  const startedAtRef = useRef(Date.now()); // para el desempate invisible por tiempo, ver api/submit-score.js
   const loadingRef = useRef(false); // evita cargas duplicadas (doble-render en dev, dobles clicks, etc.)
   const category = CATEGORIES[categoryIndex];
 
@@ -62,6 +64,7 @@ export function useGame() {
   const goToRecapOrFinish = useCallback((currentCatId) => {
     const currentIndex = CATEGORIES.findIndex((c) => c.id === currentCatId);
     if (currentIndex >= CATEGORIES.length - 1) {
+      setTotalTimeMs(Date.now() - startedAtRef.current);
       setPhase("finished");
       return;
     }
@@ -84,6 +87,8 @@ export function useGame() {
     setCategoryScore(0);
     setRound(null);
     usedKeysRef.current = new Set();
+    startedAtRef.current = Date.now();
+    setTotalTimeMs(null);
     setSkipNotice(null);
     setPhase("intro");
   }, []);
@@ -140,6 +145,7 @@ export function useGame() {
     phase,
     totalScore,
     categoryScore,
+    totalTimeMs,
     lastPick,
     errorMessage,
     skipNotice,

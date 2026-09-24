@@ -6,6 +6,7 @@
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getClientIp, hashIp, todayUTC, getFirebaseApp } from "./_lib/ip.js";
+import { isGodModeActive } from "./_lib/godmode.js";
 
 export default async function handler(req, res) {
   try {
@@ -18,6 +19,23 @@ export default async function handler(req, res) {
     const db = getFirestore(app);
     const today = todayUTC();
 
+    const authHeader = req.headers.authorization || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    let decoded = null;
+    if (idToken) {
+      try {
+        decoded = await getAuth(app).verifyIdToken(idToken);
+      } catch (err) {
+        console.warn("game-status: verifyIdToken fallo, se trata como anonimo:", err.message);
+      }
+    }
+
+    // modo dios activo -> se ignora cualquier bloqueo, por IP o por cuenta
+    if (await isGodModeActive(db, decoded)) {
+      res.status(200).json({ alreadyPlayed: false });
+      return;
+    }
+
     const ip = getClientIp(req);
     const ipHash = hashIp(ip);
     const ipSnap = await db.collection("dailyIPs").doc(`${today}_${ipHash}`).get();
@@ -26,18 +44,11 @@ export default async function handler(req, res) {
       return;
     }
 
-    const authHeader = req.headers.authorization || "";
-    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    if (idToken) {
-      try {
-        const decoded = await getAuth(app).verifyIdToken(idToken);
-        const scoreSnap = await db.collection("scores").doc(decoded.uid).get();
-        if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
-          res.status(200).json({ alreadyPlayed: true });
-          return;
-        }
-      } catch (err) {
-        console.warn("game-status: verifyIdToken fallo, se trata como anonimo:", err.message);
+    if (decoded) {
+      const scoreSnap = await db.collection("scores").doc(decoded.uid).get();
+      if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
+        res.status(200).json({ alreadyPlayed: true });
+        return;
       }
     }
 

@@ -12,10 +12,13 @@
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getClientIp, hashIp, todayUTC, getFirebaseApp } from "./_lib/ip.js";
+import { isGodModeActive } from "./_lib/godmode.js";
 
 const CATEGORIES_COUNT = 4;
 const ROUNDS_PER_CATEGORY = 5;
 const MAX_SCORE = CATEGORIES_COUNT * ROUNDS_PER_CATEGORY;
+const TOTAL_ROUNDS = CATEGORIES_COUNT * ROUNDS_PER_CATEGORY;
+const MIN_PLAUSIBLE_MS = TOTAL_ROUNDS * 300; // ~300ms minimo de reaccion humana por ronda
 
 export default async function handler(req, res) {
   try {
@@ -31,11 +34,17 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { score } = req.body || {};
+    const { score, totalTimeMs } = req.body || {};
     if (typeof score !== "number" || score < 0 || score > MAX_SCORE || !Number.isInteger(score)) {
       res.status(400).json({ error: "invalid-score" });
       return;
     }
+
+    // desempate invisible por tiempo total de la partida (mas rapido gana
+    // si el puntaje quedo empatado). si el numero que manda el cliente no es
+    // creible, lo mandamos al fondo de la cola en vez de premiarlo.
+    const safeTimeMs =
+      typeof totalTimeMs === "number" && totalTimeMs >= MIN_PLAUSIBLE_MS ? Math.round(totalTimeMs) : Number.MAX_SAFE_INTEGER;
 
     const app = getFirebaseApp();
     const db = getFirestore(app);
@@ -51,21 +60,28 @@ export default async function handler(req, res) {
 
     const uid = decoded.uid;
     const today = todayUTC();
+    const godActive = await isGodModeActive(db, decoded);
 
     const scoreRef = db.collection("scores").doc(uid);
-    const scoreSnap = await scoreRef.get();
-    if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
-      res.status(409).json({ error: "already-played-today" });
-      return;
+
+    if (!godActive) {
+      const scoreSnap = await scoreRef.get();
+      if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
+        res.status(409).json({ error: "already-played-today" });
+        return;
+      }
     }
 
     const ip = getClientIp(req);
     const ipHash = hashIp(ip);
     const ipRef = db.collection("dailyIPs").doc(`${today}_${ipHash}`);
-    const ipSnap = await ipRef.get();
-    if (ipSnap.exists && ipSnap.data().uid !== uid) {
-      res.status(409).json({ error: "already-played-today" });
-      return;
+
+    if (!godActive) {
+      const ipSnap = await ipRef.get();
+      if (ipSnap.exists && ipSnap.data().uid !== uid) {
+        res.status(409).json({ error: "already-played-today" });
+        return;
+      }
     }
 
     await scoreRef.set(
@@ -73,6 +89,7 @@ export default async function handler(req, res) {
         displayName: decoded.name || "Anonymous",
         photoURL: decoded.picture || null,
         totalPoints: score,
+        totalTimeMs: safeTimeMs,
         lastPlayedDate: today,
       },
       { merge: true }

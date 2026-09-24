@@ -35,5 +35,12 @@ service cloud.firestore {
     match /dailyIPs/{entryId} {
       allow read, write: if false;
     }
+
+    // toggle de "modo dios" (bypass del limite diario para una sola cuenta,
+    // mientras se prueba en produccion). solo lo toca api/god-mode.js con la
+    // Admin SDK, nunca el cliente.
+    match /settings/{settingId} {
+      allow read, write: if false;
+    }
   }
 }

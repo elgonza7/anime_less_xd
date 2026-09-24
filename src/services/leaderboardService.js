@@ -10,7 +10,11 @@ export class AlreadyPlayedTodayError extends Error {}
 // browser). todo pasa por /api/submit-score, que valida el token, chequea
 // "un intento guardado por dia" por usuario Y por IP, y recien ahi escribe
 // con la Admin SDK. asi nadie puede inventarse un puntaje desde devtools.
-export async function submitScore(user, score) {
+//
+// totalTimeMs es un desempate invisible (nunca se muestra en ningun lado):
+// si dos personas sacan el mismo puntaje, gana quien termino mas rapido. el
+// server descarta valores poco creibles en vez de premiarlos.
+export async function submitScore(user, score, totalTimeMs) {
   if (!firebaseReady || !user) return;
 
   const idToken = await user.getIdToken();
@@ -19,7 +23,7 @@ export async function submitScore(user, score) {
     res = await fetch("/api/submit-score", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({ score }),
+      body: JSON.stringify({ score, totalTimeMs }),
     });
   } catch (err) {
     console.error("submit-score: fetch fallo (red/CORS/etc):", err);
@@ -59,16 +63,41 @@ export async function markPlayedAnonymously() {
   }
 }
 
+// { isGodUser: false } para cualquiera que no sea la cuenta especial.
+// { isGodUser: true, enabled } para esa cuenta.
+export async function getGodModeStatus(user) {
+  if (!user) return { isGodUser: false };
+  const idToken = await user.getIdToken();
+  const res = await fetch("/api/god-mode", { headers: { Authorization: `Bearer ${idToken}` } });
+  if (!res.ok) return { isGodUser: false };
+  return res.json();
+}
+
+export async function setGodMode(user, enabled) {
+  const idToken = await user.getIdToken();
+  const res = await fetch("/api/god-mode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) throw new Error(`No se pudo cambiar el modo dios (${res.status})`);
+  return res.json();
+}
+
 export async function getTopScores(topN = 10) {
   if (!firebaseReady) return [];
-  const q = query(collection(db, SCORES_COLLECTION), orderBy("totalPoints", "desc"), limit(topN));
+  const q = query(
+    collection(db, SCORES_COLLECTION),
+    orderBy("totalPoints", "desc"),
+    orderBy("totalTimeMs", "asc"),
+    limit(topN)
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d, i) => ({ uid: d.id, rank: i + 1, ...d.data() }));
 }
 
-// firestore no tiene "rank" nativo asi que contamos cuanta gente le gana.
-// para un leaderboard chico esto sale gratis, si esto se vuelve el nuevo facebook
-// habra que migrar a un contador desnormalizado
+// firestore no tiene "rank" nativo asi que contamos cuanta gente le gana:
+// mas puntos, o mismos puntos pero mas rapido (desempate invisible).
 export async function getUserRank(uid) {
   if (!firebaseReady) return null;
 
@@ -76,12 +105,22 @@ export async function getUserRank(uid) {
   if (!userSnap.exists()) return null;
 
   const myScore = userSnap.data().totalPoints ?? 0;
-  const aheadQuery = query(collection(db, SCORES_COLLECTION), where("totalPoints", ">", myScore));
-  const aheadCount = await getCountFromServer(aheadQuery);
+  const myTime = userSnap.data().totalTimeMs ?? Number.MAX_SAFE_INTEGER;
+
+  const [aheadByScore, tiedButFaster] = await Promise.all([
+    getCountFromServer(query(collection(db, SCORES_COLLECTION), where("totalPoints", ">", myScore))),
+    getCountFromServer(
+      query(
+        collection(db, SCORES_COLLECTION),
+        where("totalPoints", "==", myScore),
+        where("totalTimeMs", "<", myTime)
+      )
+    ),
+  ]);
 
   return {
     uid,
-    rank: aheadCount.data().count + 1,
+    rank: aheadByScore.data().count + tiedButFaster.data().count + 1,
     totalPoints: myScore,
     displayName: userSnap.data().displayName,
     photoURL: userSnap.data().photoURL,

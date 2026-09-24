@@ -13,8 +13,8 @@ export default function GameScreen({ game, onFinished }) {
   const { category, phase } = game;
 
   useEffect(() => {
-    if (phase === "finished") onFinished(game.totalScore);
-  }, [phase, game.totalScore, onFinished]);
+    if (phase === "finished") onFinished(game.totalScore, game.totalTimeMs);
+  }, [phase, game.totalScore, game.totalTimeMs, onFinished]);
 
   // arranca la categoria sola, sin boton
   useEffect(() => {

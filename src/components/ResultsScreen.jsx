@@ -13,7 +13,7 @@ import RankReveal from "./RankReveal";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
 
-export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard }) {
+export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoToLeaderboard }) {
   const [saveState, setSaveState] = useState(user ? "saving" : "no-account");
   const [errorDetail, setErrorDetail] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null); // { top, myRank } | null
@@ -32,7 +32,7 @@ export default function ResultsScreen({ score, user, onSaved, onGoToLeaderboard 
       return;
     }
 
-    submitScore(user, score)
+    submitScore(user, score, totalTimeMs)
       .then(() => {
         setSaveState("saved");
         onSaved?.();

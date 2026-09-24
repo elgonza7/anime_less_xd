@@ -2,6 +2,7 @@ import { fetchAnimeByTitle } from "../services/aniListService";
 import { fetchVideoStats } from "../services/youtubeService";
 import { resolveOpening } from "../services/openingsCacheService";
 import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from "../services/episodeService";
+import { fetchEpisodeStill } from "../services/tmdbService";
 import { ANIME_TITLES_SEED } from "../data/animeTitlesSeed";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
 import { OPENINGS_CATALOG } from "../data/openingsCatalog";
@@ -104,11 +105,18 @@ export async function fetchEpisodeEntry(usedKeys, seedContext) {
       continue;
     }
 
-    const animeInfo = await fetchAnimeByTitle(entry.anime).catch(() => null);
+    // portada del EPISODIO puntual si TMDB la tiene; si no, la del anime en
+    // general (mejor eso que nada, pero la del episodio ayuda mucho mas a
+    // reconocerlo -- "ah si, ese episodio").
+    const [animeInfo, episodeStill] = await Promise.all([
+      fetchAnimeByTitle(entry.anime).catch(() => null),
+      fetchEpisodeStill(entry.tconst, episode.season, episode.episode).catch(() => null),
+    ]);
+
     return {
       itemKey: episode.tconst,
       label: `${entry.anime} — S${episode.season}E${episode.episode}`,
-      imageUrl: animeInfo?.imageUrl,
+      imageUrl: episodeStill || animeInfo?.imageUrl,
       value: episode.rating,
       statIcon: "⭐",
       statDecimals: 1,

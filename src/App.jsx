@@ -10,7 +10,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useGame } from "./hooks/useGame";
 import { useTheme } from "./hooks/useTheme";
 import { useMute } from "./hooks/useMute";
-import { checkGameStatus } from "./services/leaderboardService";
+import { checkGameStatus, getGodModeStatus, setGodMode } from "./services/leaderboardService";
 
 function App() {
   const { user } = useAuth();
@@ -19,16 +19,23 @@ function App() {
   const { muted, toggleMuted } = useMute();
   const [view, setView] = useState("game"); // game | results | leaderboard
   const [finishedScore, setFinishedScore] = useState(0);
+  const [finishedTimeMs, setFinishedTimeMs] = useState(null);
   const [alreadyPlayedToday, setAlreadyPlayedToday] = useState(null); // null = checking
+  const [godMode, setGodModeState] = useState({ isGodUser: false, enabled: false });
 
   // esto corre para CUALQUIERA, con o sin sesion -- antes solo chequeaba la
   // cuenta, asi que sin loguearse se podia rejugar infinitas veces con solo
   // volver al inicio. ahora tambien se chequea por IP en el servidor.
+  const refreshGameStatus = () => checkGameStatus(user || null).then(setAlreadyPlayedToday);
+
   useEffect(() => {
     let alive = true;
     setAlreadyPlayedToday(null);
     checkGameStatus(user || null).then((played) => {
       if (alive) setAlreadyPlayedToday(played);
+    });
+    getGodModeStatus(user || null).then((status) => {
+      if (alive) setGodModeState(status);
     });
     return () => {
       alive = false;
@@ -40,9 +47,21 @@ function App() {
     setView("game");
   };
 
-  const handleFinished = (score) => {
+  const handleFinished = (score, totalTimeMs) => {
     setFinishedScore(score);
+    setFinishedTimeMs(totalTimeMs);
     setView("results");
+  };
+
+  const handleToggleGodMode = () => {
+    const next = !godMode.enabled;
+    setGodModeState((g) => ({ ...g, enabled: next })); // optimista
+    setGodMode(user, next)
+      .then(() => refreshGameStatus())
+      .catch((err) => {
+        console.error(err);
+        setGodModeState((g) => ({ ...g, enabled: !next })); // revertir si fallo
+      });
   };
 
   return (
@@ -55,6 +74,9 @@ function App() {
         onToggleMuted={toggleMuted}
         onGoHome={goHome}
         onGoLeaderboard={() => setView("leaderboard")}
+        isGodUser={godMode.isGodUser}
+        godModeEnabled={godMode.enabled}
+        onToggleGodMode={handleToggleGodMode}
       />
 
       <main className="flex flex-1 items-start justify-center p-3 pt-4 sm:p-4 sm:pt-6">
@@ -87,8 +109,9 @@ function App() {
             >
               <ResultsScreen
                 score={finishedScore}
+                totalTimeMs={finishedTimeMs}
                 user={user}
-                onSaved={() => setAlreadyPlayedToday(true)}
+                onSaved={refreshGameStatus}
                 onGoToLeaderboard={() => setView("leaderboard")}
               />
             </motion.div>
