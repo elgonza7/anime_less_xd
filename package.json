@@ -27,5 +27,8 @@
     "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0"
+  },
+  "overrides": {
+    "jose": "4.15.9"
   }
 }
