@@ -4,13 +4,13 @@ import Navbar from "./components/Navbar";
 import GameScreen from "./components/GameScreen";
 import ResultsScreen from "./components/ResultsScreen";
 import Leaderboard from "./components/Leaderboard";
-import LoginGate from "./components/LoginGate";
 import AlreadyPlayedScreen from "./components/AlreadyPlayedScreen";
 import { useAuth } from "./hooks/useAuth";
 import { useGame } from "./hooks/useGame";
 import { useTheme } from "./hooks/useTheme";
 import { useMute } from "./hooks/useMute";
 import { checkGameStatus, getGodModeStatus, setGodMode } from "./services/leaderboardService";
+import { completeRedirectSignIn } from "./services/authService";
 
 function App() {
   const { user } = useAuth();
@@ -27,6 +27,13 @@ function App() {
   // cuenta, asi que sin loguearse se podia rejugar infinitas veces con solo
   // volver al inicio. ahora tambien se chequea por IP en el servidor.
   const refreshGameStatus = () => checkGameStatus(user || null).then(setAlreadyPlayedToday);
+
+  // si el login cayo en el fallback de redirect (ver services/authService.js),
+  // esto termina el proceso al volver de Google. onAuthStateChanged se entera
+  // solo despues.
+  useEffect(() => {
+    completeRedirectSignIn();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -125,11 +132,7 @@ function App() {
               exit={{ opacity: 0 }}
               className="w-full"
             >
-              {user ? (
-                <Leaderboard user={user} onBack={goHome} />
-              ) : (
-                <LoginGate message="Sign in with Google to see the global leaderboard." />
-              )}
+              <Leaderboard user={user} onBack={goHome} />
             </motion.div>
           )}
         </AnimatePresence>

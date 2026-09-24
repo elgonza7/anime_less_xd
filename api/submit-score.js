@@ -78,7 +78,11 @@ export default async function handler(req, res) {
 
     if (!godActive) {
       const ipSnap = await ipRef.get();
-      if (ipSnap.exists && ipSnap.data().uid !== uid) {
+      // si la IP ya jugo hoy con OTRA cuenta, bloqueamos. si jugo anonima
+      // (uid null, ver api/mark-played.js) dejamos pasar: es probablemente la
+      // misma persona iniciando sesion recien despues de terminar su unica
+      // corrida del dia, no un replay.
+      if (ipSnap.exists && ipSnap.data().uid && ipSnap.data().uid !== uid) {
         res.status(409).json({ error: "already-played-today" });
         return;
       }

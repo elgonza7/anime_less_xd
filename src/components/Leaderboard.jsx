@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { getTopScores, getUserRank } from "../services/leaderboardService";
 
+// user es opcional: el leaderboard es publico (ver firestore.rules), asi que
+// tambien lo puede ver alguien sin loguearse -- simplemente no le mostramos
+// "tu posicion" porque sin cuenta no hay puntaje guardado que resaltar.
+
 function Row({ rank, displayName, photoURL, totalPoints, highlight, index }) {
   return (
     <motion.div
@@ -30,7 +34,7 @@ export default function Leaderboard({ user, onBack }) {
     let alive = true;
     setLoading(true);
     setError(null);
-    Promise.all([getTopScores(10), getUserRank(user.uid)])
+    Promise.all([getTopScores(10), user ? getUserRank(user.uid) : Promise.resolve(null)])
       .then(([topScores, rank]) => {
         if (!alive) return;
         setTop(topScores);
@@ -46,11 +50,11 @@ export default function Leaderboard({ user, onBack }) {
     return () => {
       alive = false;
     };
-  }, [user.uid]);
+  }, [user]);
 
   useEffect(() => load(), [load]);
 
-  const isUserInTop = top?.some((row) => row.uid === user.uid);
+  const isUserInTop = user && top?.some((row) => row.uid === user.uid);
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4">
@@ -70,7 +74,7 @@ export default function Leaderboard({ user, onBack }) {
       {!loading && !error && (
         <div className="flex flex-col gap-2">
           {top.map((row, i) => (
-            <Row key={row.uid} {...row} index={i} highlight={row.uid === user.uid} />
+            <Row key={row.uid} {...row} index={i} highlight={user && row.uid === user.uid} />
           ))}
 
           {myRank && !isUserInTop && (

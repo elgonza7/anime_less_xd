@@ -14,8 +14,14 @@ export function hashIp(ip) {
   return createHash("sha256").update(ip).digest("hex");
 }
 
+// el "dia de juego" resetea a las 8am hora Argentina (UTC-3, sin horario de
+// verano) = 11:00 UTC, no a medianoche UTC. Restamos 11hs antes de sacar la
+// fecha: asi todo lo que pase antes de las 8am ART todavia cuenta como "ayer".
+const RESET_UTC_HOUR = 11;
+
 export function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
+  const shifted = new Date(Date.now() - RESET_UTC_HOUR * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 10);
 }
 
 export function getFirebaseApp() {

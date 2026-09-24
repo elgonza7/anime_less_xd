@@ -26,8 +26,13 @@ function hashStringToInt(str) {
   return hash;
 }
 
+// mismo criterio que api/_lib/ip.js: el dia resetea a las 8am hora Argentina
+// (UTC-3, sin horario de verano) = 11:00 UTC, no a medianoche UTC.
+const RESET_UTC_HOUR = 11;
+
 export function getTodayUTC() {
-  return new Date().toISOString().slice(0, 10);
+  const shifted = new Date(Date.now() - RESET_UTC_HOUR * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 10);
 }
 
 // numero en [0, 1) determinado por hoy + los "parts" que le pases. las

@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-function msUntilNextUTCDay() {
+// el dia de juego resetea a las 8am hora Argentina (UTC-3, sin horario de
+// verano) = 11:00 UTC. mismo criterio que api/_lib/ip.js y game/dailySeed.js.
+const RESET_UTC_HOUR = 11;
+
+function msUntilNextReset() {
   const now = new Date();
-  const nextMidnightUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-  return nextMidnightUTC - now.getTime();
+  let next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), RESET_UTC_HOUR);
+  if (next <= now.getTime()) next += 24 * 60 * 60 * 1000;
+  return next - now.getTime();
 }
 
 function formatCountdown(ms) {
@@ -16,10 +21,10 @@ function formatCountdown(ms) {
 }
 
 export default function AlreadyPlayedScreen({ onGoToLeaderboard }) {
-  const [remaining, setRemaining] = useState(msUntilNextUTCDay());
+  const [remaining, setRemaining] = useState(msUntilNextReset());
 
   useEffect(() => {
-    const id = setInterval(() => setRemaining(msUntilNextUTCDay()), 1000);
+    const id = setInterval(() => setRemaining(msUntilNextReset()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -32,14 +37,17 @@ export default function AlreadyPlayedScreen({ onGoToLeaderboard }) {
     >
       <motion.span
         className="text-7xl"
-        animate={{ x: [0, 14, 0, -14, 0] }}
-        transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+        animate={{ rotate: [0, -6, 0, 6, 0] }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
       >
-        🏃
+        🕵️
       </motion.span>
 
-      <h2 className="text-3xl font-black">You already played today!</h2>
-      <p className="opacity-70">Your score for today is locked in on the leaderboard. Come back tomorrow for another run.</p>
+      <h2 className="text-3xl font-black">Case closed, detective.</h2>
+      <p className="opacity-70">
+        "There's no need to jump to conclusions — the truth already came out today." Your score's locked in on the
+        leaderboard. Come back after the next reset for another case.
+      </p>
 
       <div className="rounded-2xl bg-panel px-6 py-4">
         <p className="text-xs uppercase tracking-widest opacity-50">Next run in</p>

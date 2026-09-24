@@ -20,13 +20,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // leaderboard: para ver el top hay que estar logueado con Google (asi lo
-    // pidio el cliente). el puntaje NUNCA se escribe desde el cliente: pasa
-    // por api/submit-score.js (Vercel), que valida el token con la Admin SDK,
-    // controla "un intento guardado por dia" por usuario y por IP, y recien
-    // ahi escribe. asi nadie puede inventarse un totalPoints desde devtools.
+    // leaderboard: publico, sin necesidad de login (para poder mostrarlo
+    // apenas terminas de jugar, aunque no te hayas registrado). no expone
+    // nada sensible (nombre, foto, puntaje). el puntaje NUNCA se escribe
+    // desde el cliente: pasa por api/submit-score.js (Vercel), que valida el
+    // token con la Admin SDK, controla "un intento guardado por dia" por
+    // usuario y por IP, y recien ahi escribe. asi nadie puede inventarse un
+    // totalPoints desde devtools.
     match /scores/{userId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if false;
     }
 

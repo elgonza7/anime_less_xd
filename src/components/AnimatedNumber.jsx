@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 // cuenta desde 0 hasta `value` cuando `active` pasa a true, tipo cronometro.
-export default function AnimatedNumber({ value, active, duration = 700, decimals = 0 }) {
+export default function AnimatedNumber({ value, active, duration = 1200, decimals = 0 }) {
   const [display, setDisplay] = useState(0);
   const rafRef = useRef();
 

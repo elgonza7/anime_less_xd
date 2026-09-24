@@ -126,3 +126,20 @@ export async function getUserRank(uid) {
     photoURL: userSnap.data().photoURL,
   };
 }
+
+// mismo calculo que getUserRank pero SIN cuenta guardada -- para mostrarle a
+// alguien que jugo sin loguearse donde quedaria si se registrara. no hace
+// falta login: scores es de lectura publica (ver firestore.rules).
+export async function getHypotheticalRank(score, totalTimeMs) {
+  if (!firebaseReady) return null;
+  const myTime = typeof totalTimeMs === "number" ? totalTimeMs : Number.MAX_SAFE_INTEGER;
+
+  const [aheadByScore, tiedButFaster] = await Promise.all([
+    getCountFromServer(query(collection(db, SCORES_COLLECTION), where("totalPoints", ">", score))),
+    getCountFromServer(
+      query(collection(db, SCORES_COLLECTION), where("totalPoints", "==", score), where("totalTimeMs", "<", myTime))
+    ),
+  ]);
+
+  return { rank: aheadByScore.data().count + tiedButFaster.data().count + 1, totalPoints: score };
+}

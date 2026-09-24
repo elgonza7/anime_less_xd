@@ -6,8 +6,10 @@ import {
   markPlayedAnonymously,
   getTopScores,
   getUserRank,
+  getHypotheticalRank,
   AlreadyPlayedTodayError,
 } from "../services/leaderboardService";
+import { signInWithGoogle } from "../services/authService";
 import { playFinale } from "../game/sounds";
 import RankReveal from "./RankReveal";
 
@@ -52,17 +54,47 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
 
   // apenas se sabe que el puntaje de hoy quedo guardado (esta corrida o una
   // anterior), traemos el leaderboard para mostrarlo aca mismo -- ya no hay
-  // que ir a otra pantalla a verlo.
+  // que ir a otra pantalla a verlo. si todavia no te logueaste, igual
+  // mostramos el top con una fila fantasma ("You'd be here"): el leaderboard
+  // es publico, no hace falta cuenta para verlo.
   useEffect(() => {
-    if (!user || saveState === "saving") return;
+    if (saveState === "saving") return;
     let alive = true;
-    Promise.all([getTopScores(5), getUserRank(user.uid)]).then(([top, myRank]) => {
-      if (alive && myRank) setLeaderboard({ top, myRank });
-    });
+    if (user) {
+      Promise.all([getTopScores(5), getUserRank(user.uid)]).then(([top, myRank]) => {
+        if (alive && myRank) setLeaderboard({ top, myRank });
+      });
+    } else {
+      Promise.all([getTopScores(5), getHypotheticalRank(score, totalTimeMs)]).then(([top, myRank]) => {
+        if (alive) setLeaderboard({ top, myRank });
+      });
+    }
     return () => {
       alive = false;
     };
-  }, [user, saveState]);
+  }, [user, saveState, score, totalTimeMs]);
+
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleSignInAndSave = async () => {
+    setSigningIn(true);
+    try {
+      const loggedInUser = await signInWithGoogle();
+      setSaveState("saving");
+      await submitScore(loggedInUser, score, totalTimeMs);
+      setSaveState("saved");
+      onSaved?.();
+    } catch (err) {
+      if (err instanceof AlreadyPlayedTodayError) {
+        setSaveState("already-played");
+        onSaved?.();
+      } else {
+        console.error("couldn't sign in / save score:", err);
+      }
+    } finally {
+      setSigningIn(false);
+    }
+  };
 
   const pct = Math.round((score / MAX_SCORE) * 100);
   const emoji = pct >= 80 ? "🔥" : pct >= 50 ? "🙂" : "💀";
@@ -107,20 +139,34 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
         <p className="max-w-xs text-xs text-red-400/80">{errorDetail}</p>
       )}
 
-      {!user && (
-        <p className="text-sm opacity-70">Sign in with Google next time so your score counts on the leaderboard.</p>
+      {leaderboard ? (
+        <RankReveal myRank={leaderboard.myRank} top={leaderboard.top} myUid={user?.uid} />
+      ) : (
+        <p className="text-sm opacity-60">Loading leaderboard...</p>
       )}
 
-      {user && leaderboard ? (
-        <RankReveal myRank={leaderboard.myRank} top={leaderboard.top} myUid={user.uid} />
-      ) : (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+      {!user && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex flex-col items-center gap-2"
+        >
           <button
-            onClick={onGoToLeaderboard}
-            className="rounded-full bg-violet-600 px-6 py-3 font-bold text-white hover:bg-violet-500"
+            onClick={handleSignInAndSave}
+            disabled={signingIn || saveState === "saved" || saveState === "already-played"}
+            className="flex items-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-black shadow disabled:opacity-50"
           >
-            View leaderboard →
+            {signingIn ? "Signing in..." : "Sign in with Google to save your spot"}
           </button>
+          {saveState === "saved" && <p className="text-sm text-emerald-400">Saved! You're on today's leaderboard ✅</p>}
+          {saveState === "already-played" && (
+            <p className="text-sm opacity-70">You already have a score saved for today.</p>
+          )}
+          <p className="max-w-xs text-xs opacity-50">
+            We only use your Google sign-in to check you're a real player and lock in your spot — never to read your
+            data or spam you.
+          </p>
         </motion.div>
       )}
     </motion.div>

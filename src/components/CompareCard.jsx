@@ -41,7 +41,7 @@ export default function CompareCard({
       animate={{ opacity: 1 }}
       whileHover={!disabled ? { scale: 1.015 } : {}}
       whileTap={!disabled ? { scale: 0.985 } : {}}
-      transition={{ layout: { duration: 0.6, ease: "easeInOut" }, opacity: { duration: 0.25 } }}
+      transition={{ layout: { duration: 1.1, ease: "easeInOut" }, opacity: { duration: 0.4 } }}
       className={`group relative overflow-hidden rounded-3xl border-2 bg-panel text-left shadow-xl transition-colors ${CARD_SIZE_CLASSES} ${borderClass} ${
         disabled ? "cursor-default" : "cursor-pointer"
       }`}

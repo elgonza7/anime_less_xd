@@ -6,8 +6,8 @@ import CategoryStepper from "./CategoryStepper";
 import { ROUNDS_PER_CATEGORY } from "../game/categories";
 import { playCorrect, playWrong, playCategoryComplete } from "../game/sounds";
 
-const REVEAL_DELAY_MS = 1400;
-const RECAP_DELAY_MS = 2200;
+const REVEAL_DELAY_MS = 2400;
+const RECAP_DELAY_MS = 2800;
 
 export default function GameScreen({ game, onFinished }) {
   const { category, phase } = game;
