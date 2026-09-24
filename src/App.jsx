@@ -11,6 +11,7 @@ import { useTheme } from "./hooks/useTheme";
 import { useMute } from "./hooks/useMute";
 import { checkGameStatus, getGodModeStatus, setGodMode } from "./services/leaderboardService";
 import { completeRedirectSignIn } from "./services/authService";
+import { saveLastResult, getPendingResultForToday } from "./game/dailyResult";
 
 function App() {
   const { user } = useAuth();
@@ -39,7 +40,20 @@ function App() {
     let alive = true;
     setAlreadyPlayedToday(null);
     checkGameStatus(user || null).then((played) => {
-      if (alive) setAlreadyPlayedToday(played);
+      if (!alive) return;
+      setAlreadyPlayedToday(played);
+      // si el server dice "ya jugaste hoy" pero todavia tenemos guardada una
+      // corrida de hoy que nunca se confirmo guardada (login que fallo,
+      // recarga en mal momento, etc), volvemos a resultados en vez de dejarte
+      // sin forma de guardar el puntaje -- ver game/dailyResult.js.
+      if (played) {
+        const pending = getPendingResultForToday();
+        if (pending && !pending.saved) {
+          setFinishedScore(pending.score);
+          setFinishedTimeMs(pending.totalTimeMs);
+          setView("results");
+        }
+      }
     });
     getGodModeStatus(user || null).then((status) => {
       if (alive) setGodModeState(status);
@@ -55,6 +69,7 @@ function App() {
   };
 
   const handleFinished = (score, totalTimeMs) => {
+    saveLastResult(score, totalTimeMs);
     setFinishedScore(score);
     setFinishedTimeMs(totalTimeMs);
     setView("results");

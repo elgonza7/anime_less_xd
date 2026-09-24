@@ -11,6 +11,7 @@ import {
 } from "../services/leaderboardService";
 import { signInWithGoogle } from "../services/authService";
 import { playFinale } from "../game/sounds";
+import { markLastResultSaved } from "../game/dailyResult";
 import RankReveal from "./RankReveal";
 
 const MAX_SCORE = CATEGORIES.length * ROUNDS_PER_CATEGORY;
@@ -36,11 +37,13 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
 
     submitScore(user, score, totalTimeMs)
       .then(() => {
+        markLastResultSaved();
         setSaveState("saved");
         onSaved?.();
       })
       .catch((err) => {
         if (err instanceof AlreadyPlayedTodayError) {
+          markLastResultSaved(); // ya hay un puntaje de hoy guardado (esta cuenta u otra corrida), no hay nada pendiente
           setSaveState("already-played");
           onSaved?.();
         } else {
@@ -51,6 +54,28 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, score]);
+
+  const retrySave = () => {
+    setSaveState("saving");
+    setErrorDetail(null);
+    submitScore(user, score, totalTimeMs)
+      .then(() => {
+        markLastResultSaved();
+        setSaveState("saved");
+        onSaved?.();
+      })
+      .catch((err) => {
+        if (err instanceof AlreadyPlayedTodayError) {
+          markLastResultSaved();
+          setSaveState("already-played");
+          onSaved?.();
+        } else {
+          console.error("couldn't save score (retry):", err);
+          setErrorDetail(err.message);
+          setSaveState("error");
+        }
+      });
+  };
 
   // apenas se sabe que el puntaje de hoy quedo guardado (esta corrida o una
   // anterior), traemos el leaderboard para mostrarlo aca mismo -- ya no hay
@@ -75,21 +100,28 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
   }, [user, saveState, score, totalTimeMs]);
 
   const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState(null);
 
   const handleSignInAndSave = async () => {
     setSigningIn(true);
+    setSignInError(null);
     try {
       const loggedInUser = await signInWithGoogle();
+      if (!loggedInUser) return; // cayo al fallback de redirect, la pagina se recarga sola
       setSaveState("saving");
       await submitScore(loggedInUser, score, totalTimeMs);
+      markLastResultSaved();
       setSaveState("saved");
       onSaved?.();
     } catch (err) {
       if (err instanceof AlreadyPlayedTodayError) {
+        markLastResultSaved();
         setSaveState("already-played");
         onSaved?.();
       } else {
         console.error("couldn't sign in / save score:", err);
+        setSignInError(err.message || "Something went wrong, try again.");
+        setSaveState("no-account");
       }
     } finally {
       setSigningIn(false);
@@ -135,8 +167,13 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
         </p>
       ) : null}
 
-      {saveState === "error" && errorDetail && (
-        <p className="max-w-xs text-xs text-red-400/80">{errorDetail}</p>
+      {saveState === "error" && (
+        <div className="flex flex-col items-center gap-2">
+          {errorDetail && <p className="max-w-xs text-xs text-red-400/80">{errorDetail}</p>}
+          <button onClick={retrySave} className="rounded-full bg-panel px-5 py-2 text-sm font-bold hover:bg-panel-border">
+            Retry saving score
+          </button>
+        </div>
       )}
 
       {leaderboard ? (
@@ -163,6 +200,7 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
           {saveState === "already-played" && (
             <p className="text-sm opacity-70">You already have a score saved for today.</p>
           )}
+          {signInError && <p className="max-w-xs text-xs text-red-400/80">{signInError}</p>}
           <p className="max-w-xs text-xs opacity-50">
             We only use your Google sign-in to check you're a real player and lock in your spot — never to read your
             data or spam you.
