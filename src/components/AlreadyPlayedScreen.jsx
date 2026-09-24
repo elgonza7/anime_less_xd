@@ -35,19 +35,14 @@ export default function AlreadyPlayedScreen({ onGoToLeaderboard }) {
       transition={{ type: "spring", stiffness: 200, damping: 18 }}
       className="mx-auto flex max-w-md flex-col items-center gap-5 text-center"
     >
-      <motion.span
-        className="text-7xl"
-        animate={{ rotate: [0, -6, 0, 6, 0] }}
-        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-      >
-        🕵️
-      </motion.span>
+      <img
+        src="https://media1.tenor.com/m/e1YBN6Rnpg4AAAAd/dave-fizz.gif"
+        alt="Naoto Shirogane dancing"
+        className="h-40 w-40 rounded-2xl object-cover shadow-lg"
+      />
 
-      <h2 className="text-3xl font-black">Case closed, detective.</h2>
-      <p className="opacity-70">
-        "There's no need to jump to conclusions — the truth already came out today." Your score's locked in on the
-        leaderboard. Come back after the next reset for another case.
-      </p>
+      <h2 className="text-3xl font-black">You already played today!</h2>
+      <p className="opacity-70">Your score for today is locked in on the leaderboard. Come back after the next reset for another run.</p>
 
       <div className="rounded-2xl bg-panel px-6 py-4">
         <p className="text-xs uppercase tracking-widest opacity-50">Next run in</p>
