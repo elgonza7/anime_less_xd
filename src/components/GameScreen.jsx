@@ -129,7 +129,7 @@ export default function GameScreen({ game, onFinished }) {
           </motion.span>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
+        <div className="flex flex-col items-center gap-3 md:flex-row md:gap-6">
           <CompareCard
             key={leftEntry.itemKey}
             side="left"

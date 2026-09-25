@@ -10,8 +10,8 @@ const API_BASE = "https://api.themoviedb.org/3";
 const READ_TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
 
 const tvIdCache = new Map(); // tconst -> tmdbTvId | null
-const seasonMapCache = new Map(); // tvId -> [{ season, episodeCount }] (sin specials), o null
-const stillCache = new Map(); // "tvId-season-episode" -> url | null
+const seasonCountsCache = new Map(); // tvId -> [{ season, episodeCount }] | null
+const seasonEpisodesCache = new Map(); // "tvId-season" -> [{still_path}] | null
 
 async function tmdbGet(path) {
   if (!READ_TOKEN) return null;
@@ -36,7 +36,7 @@ async function resolveTmdbTvId(tconst) {
 }
 
 async function getSeasonEpisodeCounts(tvId) {
-  if (seasonMapCache.has(tvId)) return seasonMapCache.get(tvId);
+  if (seasonCountsCache.has(tvId)) return seasonCountsCache.get(tvId);
 
   const data = await tmdbGet(`/tv/${tvId}`);
   const seasons =
@@ -44,48 +44,54 @@ async function getSeasonEpisodeCounts(tvId) {
       ?.filter((s) => s.season_number > 0)
       .sort((a, b) => a.season_number - b.season_number)
       .map((s) => ({ season: s.season_number, episodeCount: s.episode_count })) ?? null;
-  seasonMapCache.set(tvId, seasons);
+  seasonCountsCache.set(tvId, seasons);
   return seasons;
 }
 
-// IMDb suele listar animes largos (One Piece, Naruto, HxH, Bleach, Detective
-// Conan...) como una sola "Season 1" gigante con numeracion absoluta ("S1E100").
-// TMDB separa esas mismas temporadas en temporadas reales mas chicas, PERO
-// (al menos para HxH, verificado a mano contra la API) sigue usando la
-// numeracion ABSOLUTA de episodio incluso dentro de esas temporadas: la
-// temporada 2 arranca en el episodio 63, no en el 1. Osea que para encontrar
-// el episodio 100 hay que ubicar EN QUE temporada cae ese numero absoluto,
-// pero despues pedirlo con el mismo numero absoluto (no un offset relativo).
-// Sin esto, "S1E100" le pega a un episodio que en TMDB no existe (404
-// silencioso) y siempre cae al poster generico en vez de la escena real.
-async function resolveRealSeasonEpisode(tvId, imdbSeason, imdbEpisode) {
-  if (imdbSeason !== 1) return { season: imdbSeason, episode: imdbEpisode };
+async function getSeasonEpisodes(tvId, season) {
+  const key = `${tvId}-${season}`;
+  if (seasonEpisodesCache.has(key)) return seasonEpisodesCache.get(key);
 
-  const seasons = await getSeasonEpisodeCounts(tvId);
-  if (!seasons || seasons.length === 0) return { season: imdbSeason, episode: imdbEpisode };
-
-  let cursor = 0;
-  for (const s of seasons) {
-    cursor += s.episodeCount;
-    if (imdbEpisode <= cursor) return { season: s.season, episode: imdbEpisode };
-  }
-  // no debería pasar (implicaria que IMDb tiene mas episodios que TMDB), pero
-  // por las dudas probamos con los numeros originales antes de rendirnos.
-  return { season: imdbSeason, episode: imdbEpisode };
+  const data = await tmdbGet(`/tv/${tvId}/season/${season}`);
+  const episodes = data?.episodes ?? null;
+  seasonEpisodesCache.set(key, episodes);
+  return episodes;
 }
 
-// devuelve una url de imagen o null (nunca tira error)
-export async function fetchEpisodeStill(tconst, season, episode) {
+// IMDb y TMDB casi nunca dividen un anime largo en las mismas "temporadas":
+// IMDb a veces lo deja todo en una Season 1 gigante (Hunter x Hunter), a
+// veces lo separa POR AÑO en muchas temporadas chicas (Bleach tiene 16 en
+// IMDb); TMDB arma sus propias temporadas por arco/cour, y ADEMAS a veces
+// numera los episodios de forma absoluta a lo largo de toda la serie (Naruto,
+// HxH) y a veces reinicia en 1 por temporada (Bleach) -- no hay un patron
+// unico. Confiar en "season X, episode Y" de IMDb tal cual, o asumir una
+// formula de numeracion, rompe en cualquiera de estos casos.
+//
+// la unica referencia que SI es estable entre ambos: la POSICION del
+// episodio dentro del orden cronologico completo de la serie ("es el
+// episodio numero 100 de 366"). roundBuilders.js calcula esa posicion
+// (absoluteIndex, 1-based) con el dataset propio de IMDb; aca la usamos para
+// ubicar la misma posicion dentro de las temporadas reales de TMDB, y
+// devolvemos el still de ESE item de la lista (no de "episodio numero Y"),
+// asi no importa si TMDB numera absoluto o relativo para ese show puntual.
+export async function fetchEpisodeStillByPosition(tconst, absoluteIndex) {
+  if (!Number.isFinite(absoluteIndex) || absoluteIndex < 1) return null;
+
   const tvId = await resolveTmdbTvId(tconst);
   if (!tvId) return null;
 
-  const cacheKey = `${tvId}-${season}-${episode}`;
-  if (stillCache.has(cacheKey)) return stillCache.get(cacheKey);
+  const seasons = await getSeasonEpisodeCounts(tvId);
+  if (!seasons || seasons.length === 0) return null;
 
-  const real = await resolveRealSeasonEpisode(tvId, season, episode);
-  const data = await tmdbGet(`/tv/${tvId}/season/${real.season}/episode/${real.episode}`);
-  const stillPath = data?.still_path ?? null;
-  const url = stillPath ? `https://image.tmdb.org/t/p/w780${stillPath}` : null;
-  stillCache.set(cacheKey, url);
-  return url;
+  let remaining = absoluteIndex;
+  for (const s of seasons) {
+    if (remaining <= s.episodeCount) {
+      const episodes = await getSeasonEpisodes(tvId, s.season);
+      return episodes?.[remaining - 1]?.still_path
+        ? `https://image.tmdb.org/t/p/w780${episodes[remaining - 1].still_path}`
+        : null;
+    }
+    remaining -= s.episodeCount;
+  }
+  return null; // IMDb tiene mas episodios listados de los que TMDB tiene cargados
 }

@@ -1,7 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedNumber from "./AnimatedNumber";
 
-export const CARD_SIZE_CLASSES = "h-[min(64vh,38rem)] w-full sm:h-[min(76vh,46rem)] sm:w-[min(36vw,28rem)]";
+// hasta md (768px) las dos cartas se apilan en columna (ver GameScreen.jsx),
+// asi que cada una puede ocupar casi todo el ancho y alto disponibles sin
+// competir por espacio con la otra -- antes el corte era en sm (640px), asi
+// que telefonos grandes/phablets terminaban con las dos cartas apretadas
+// lado a lado y se veian chiquititas.
+export const CARD_SIZE_CLASSES = "h-[min(58vh,34rem)] w-full md:h-[min(76vh,46rem)] md:w-[min(36vw,28rem)]";
 
 export default function CompareCard({
   side,

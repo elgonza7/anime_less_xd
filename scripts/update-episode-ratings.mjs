@@ -97,7 +97,15 @@ async function main() {
   });
 
   const batch = db.batch();
-  for (const [seriesTconst, episodes] of bySeriesTconst.entries()) {
+  for (const [seriesTconst, episodesRaw] of bySeriesTconst.entries()) {
+    // IMDb marca "\N" en season/episode para algunas entradas (specials sin
+    // ubicar, etc), que Number() convierte en NaN. Sin filtrarlas, romperian
+    // el conteo de "episodio absoluto" que usa tmdbService.js para mapear
+    // contra las temporadas de TMDB (que no siempre coinciden 1 a 1 con las
+    // de IMDb, ver Bleach: IMDb la separa en 16 temporadas por año, TMDB en 2).
+    const episodes = episodesRaw.filter(
+      (e) => Number.isFinite(e.season) && Number.isFinite(e.episode) && Number.isFinite(e.rating)
+    );
     episodes.sort((a, b) => a.season - b.season || a.episode - b.episode);
     batch.set(db.collection("episodeRatings").doc(seriesTconst), {
       anime: seriesById.get(seriesTconst),

@@ -35,9 +35,23 @@ export async function completeRedirectSignIn() {
   }
 }
 
+// signInWithPopup en el celular es poco confiable en general (Chrome/Safari
+// mobile, y sobre todo navegadores in-app como Instagram/TikTok muchas veces
+// ni siquiera abren una ventana de verdad, navegan la misma pestaña a medias
+// y quedan en un estado roto que vuelve a la pagina principal sin loguear).
+// por eso en celular vamos directo a redirect en vez de intentar popup primero.
+function isMobileBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile/i.test(navigator.userAgent);
+}
+
 export async function signInWithGoogle() {
   if (!firebaseReady) {
     throw new Error("Firebase no esta configurado todavia. Falta el .env");
+  }
+  if (isMobileBrowser()) {
+    await signInWithRedirect(auth, googleProvider);
+    return null; // la pagina se recarga; completeRedirectSignIn() toma la posta al volver
   }
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -45,7 +59,7 @@ export async function signInWithGoogle() {
   } catch (err) {
     if (POPUP_FALLBACK_CODES.has(err.code)) {
       await signInWithRedirect(auth, googleProvider);
-      return null; // la pagina se recarga; completeRedirectSignIn() toma la posta al volver
+      return null;
     }
     throw err;
   }

@@ -1,8 +1,8 @@
 import { fetchAnimeByTitle } from "../services/aniListService";
 import { fetchVideoStats } from "../services/youtubeService";
 import { resolveOpening } from "../services/openingsCacheService";
-import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode } from "../services/episodeService";
-import { fetchEpisodeStill } from "../services/tmdbService";
+import { fetchEpisodesFor, pickRandomAnimeWithEpisodes, pickRandomEpisode, absoluteEpisodeIndex } from "../services/episodeService";
+import { fetchEpisodeStillByPosition } from "../services/tmdbService";
 import { ANIME_TITLES_SEED } from "../data/animeTitlesSeed";
 import { ANIME_IMDB_SEED } from "../data/animeImdbSeed";
 import { OPENINGS_CATALOG } from "../data/openingsCatalog";
@@ -108,9 +108,10 @@ export async function fetchEpisodeEntry(usedKeys, seedContext) {
     // portada del EPISODIO puntual si TMDB la tiene; si no, la del anime en
     // general (mejor eso que nada, pero la del episodio ayuda mucho mas a
     // reconocerlo -- "ah si, ese episodio").
+    const position = absoluteEpisodeIndex(data.episodes, episode);
     const [animeInfo, episodeStill] = await Promise.all([
       fetchAnimeByTitle(entry.anime).catch(() => null),
-      fetchEpisodeStill(entry.tconst, episode.season, episode.episode).catch(() => null),
+      position ? fetchEpisodeStillByPosition(entry.tconst, position).catch(() => null) : null,
     ]);
 
     return {
