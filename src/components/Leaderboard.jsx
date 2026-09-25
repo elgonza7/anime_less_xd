@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { getTopScores, getUserRank } from "../services/leaderboardService";
+import { getTodayLeaderboard, getAllTimeTop } from "../services/leaderboardService";
 
 // user es opcional: el leaderboard es publico (ver firestore.rules), asi que
 // tambien lo puede ver alguien sin loguearse -- simplemente no le mostramos
 // "tu posicion" porque sin cuenta no hay puntaje guardado que resaltar.
+//
+// dos pestañas: "Today" (quien jugo hoy, es lo mismo que se ve apenas
+// terminas una partida) e "Historical" (el mejor puntaje que cada cuenta
+// logro ALGUNA VEZ, no se pisa dia a dia -- ver bestPoints en
+// api/submit-score.js). Historical se limita a 5 a proposito: no guardamos
+// una fila por dia jugado, solo el record de cada cuenta, asi que no hay
+// nada que "podar" con el tiempo.
 
 function Row({ rank, displayName, photoURL, totalPoints, highlight, index }) {
   return (
@@ -25,6 +32,7 @@ function Row({ rank, displayName, photoURL, totalPoints, highlight, index }) {
 }
 
 export default function Leaderboard({ user, onBack }) {
+  const [tab, setTab] = useState("today"); // today | alltime
   const [top, setTop] = useState(null);
   const [myRank, setMyRank] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,8 +42,10 @@ export default function Leaderboard({ user, onBack }) {
     let alive = true;
     setLoading(true);
     setError(null);
-    Promise.all([getTopScores(10), user ? getUserRank(user.uid) : Promise.resolve(null)])
-      .then(([topScores, rank]) => {
+    const request =
+      tab === "today" ? getTodayLeaderboard(user?.uid, 10) : getAllTimeTop(5).then((topScores) => ({ top: topScores, myRank: null }));
+    request
+      .then(({ top: topScores, myRank: rank }) => {
         if (!alive) return;
         setTop(topScores);
         setMyRank(rank);
@@ -50,7 +60,7 @@ export default function Leaderboard({ user, onBack }) {
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, [user, tab]);
 
   useEffect(() => load(), [load]);
 
@@ -59,6 +69,25 @@ export default function Leaderboard({ user, onBack }) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4">
       <h2 className="text-center text-2xl font-bold">🏆 Global Leaderboard</h2>
+
+      <div className="mx-auto flex gap-1 rounded-full bg-panel p-1">
+        <button
+          onClick={() => setTab("today")}
+          className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+            tab === "today" ? "bg-violet-600 text-white" : "opacity-60 hover:opacity-100"
+          }`}
+        >
+          Today
+        </button>
+        <button
+          onClick={() => setTab("alltime")}
+          className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+            tab === "alltime" ? "bg-violet-600 text-white" : "opacity-60 hover:opacity-100"
+          }`}
+        >
+          Historical
+        </button>
+      </div>
 
       {loading && <p className="text-center opacity-60">Loading...</p>}
 
@@ -73,21 +102,25 @@ export default function Leaderboard({ user, onBack }) {
 
       {!loading && !error && (
         <div className="flex flex-col gap-2">
+          {top.length === 0 && (
+            <p className="text-center text-sm opacity-60">
+              {tab === "today" ? "Nobody's played today yet — be the first!" : "No scores recorded yet."}
+            </p>
+          )}
+
           {top.map((row, i) => (
             <Row key={row.uid} {...row} index={i} highlight={user && row.uid === user.uid} />
           ))}
 
-          {myRank && !isUserInTop && (
+          {tab === "today" && myRank && !isUserInTop && (
             <>
               <p className="text-center text-lg opacity-40">⋯</p>
               <Row {...myRank} index={top.length} highlight />
             </>
           )}
 
-          {!myRank && (
-            <p className="mt-2 text-center text-sm opacity-60">
-              You haven't played a round yet. Play a run to score points.
-            </p>
+          {tab === "today" && !myRank && top.length > 0 && (
+            <p className="mt-2 text-center text-sm opacity-60">You haven't played today yet.</p>
           )}
         </div>
       )}

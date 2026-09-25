@@ -63,13 +63,12 @@ export default async function handler(req, res) {
     const godActive = await isGodModeActive(db, decoded);
 
     const scoreRef = db.collection("scores").doc(uid);
+    const scoreSnap = await scoreRef.get();
+    const prev = scoreSnap.exists ? scoreSnap.data() : null;
 
-    if (!godActive) {
-      const scoreSnap = await scoreRef.get();
-      if (scoreSnap.exists && scoreSnap.data().lastPlayedDate === today) {
-        res.status(409).json({ error: "already-played-today" });
-        return;
-      }
+    if (!godActive && prev?.lastPlayedDate === today) {
+      res.status(409).json({ error: "already-played-today" });
+      return;
     }
 
     const ip = getClientIp(req);
@@ -88,6 +87,18 @@ export default async function handler(req, res) {
       }
     }
 
+    // "totalPoints"/"totalTimeMs" son SIEMPRE el puntaje de la corrida mas
+    // reciente (se pisan cada dia) -- eso es lo que arma el leaderboard de
+    // HOY (filtrado por lastPlayedDate, ver leaderboardService.js). Aparte,
+    // "bestPoints"/"bestTimeMs" son el record personal de esta cuenta, que
+    // solo se actualiza si esta corrida lo mejora, y persiste aunque un dia
+    // despues juegue peor -- eso es lo que arma el leaderboard "historico"
+    // (mejores puntajes de siempre), sin necesidad de guardar cada corrida
+    // de cada dia por separado.
+    const prevBest = prev?.bestPoints ?? -1;
+    const prevBestTime = prev?.bestTimeMs ?? Number.MAX_SAFE_INTEGER;
+    const isNewBest = score > prevBest || (score === prevBest && safeTimeMs < prevBestTime);
+
     await scoreRef.set(
       {
         displayName: decoded.name || "Anonymous",
@@ -95,6 +106,7 @@ export default async function handler(req, res) {
         totalPoints: score,
         totalTimeMs: safeTimeMs,
         lastPlayedDate: today,
+        ...(isNewBest ? { bestPoints: score, bestTimeMs: safeTimeMs, bestDate: today } : {}),
       },
       { merge: true }
     );

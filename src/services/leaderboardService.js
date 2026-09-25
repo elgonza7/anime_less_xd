@@ -1,5 +1,6 @@
-import { collection, doc, getCountFromServer, getDoc, orderBy, query, limit, getDocs, where } from "firebase/firestore";
+import { collection, orderBy, query, limit, getDocs, where } from "firebase/firestore";
 import { db, firebaseReady } from "../firebase/client";
+import { getTodayUTC } from "../game/dailySeed";
 
 const SCORES_COLLECTION = "scores";
 
@@ -84,62 +85,74 @@ export async function setGodMode(user, enabled) {
   return res.json();
 }
 
-export async function getTopScores(topN = 10) {
+// el leaderboard que se muestra apenas terminas de jugar (y la pestaña
+// "Today" del leaderboard) tiene que ser SOLO gente que jugo HOY -- sin este
+// filtro, alguien que jugo ayer y no volvio a jugar seguia apareciendo con
+// el puntaje de ayer para siempre, porque "scores/{uid}" guarda el puntaje
+// MAS RECIENTE de cada cuenta, no un historial. Traemos hasta 200 (de sobra
+// para un juego chico) en un solo query y calculamos el rank en el cliente
+// en vez de hacer 2 queries de conteo aparte -- mas simple y un index menos.
+async function fetchTodayScores() {
   if (!firebaseReady) return [];
+  const today = getTodayUTC();
   const q = query(
     collection(db, SCORES_COLLECTION),
+    where("lastPlayedDate", "==", today),
     orderBy("totalPoints", "desc"),
     orderBy("totalTimeMs", "asc"),
-    limit(topN)
+    limit(200)
   );
   const snap = await getDocs(q);
   return snap.docs.map((d, i) => ({ uid: d.id, rank: i + 1, ...d.data() }));
 }
 
-// firestore no tiene "rank" nativo asi que contamos cuanta gente le gana:
-// mas puntos, o mismos puntos pero mas rapido (desempate invisible).
-export async function getUserRank(uid) {
-  if (!firebaseReady) return null;
-
-  const userSnap = await getDoc(doc(db, SCORES_COLLECTION, uid));
-  if (!userSnap.exists()) return null;
-
-  const myScore = userSnap.data().totalPoints ?? 0;
-  const myTime = userSnap.data().totalTimeMs ?? Number.MAX_SAFE_INTEGER;
-
-  const [aheadByScore, tiedButFaster] = await Promise.all([
-    getCountFromServer(query(collection(db, SCORES_COLLECTION), where("totalPoints", ">", myScore))),
-    getCountFromServer(
-      query(
-        collection(db, SCORES_COLLECTION),
-        where("totalPoints", "==", myScore),
-        where("totalTimeMs", "<", myTime)
-      )
-    ),
-  ]);
-
-  return {
-    uid,
-    rank: aheadByScore.data().count + tiedButFaster.data().count + 1,
-    totalPoints: myScore,
-    displayName: userSnap.data().displayName,
-    photoURL: userSnap.data().photoURL,
-  };
+// { top, myRank } para el leaderboard de HOY. myRank es null si "uid" no
+// jugo hoy (o no se paso uid, para alguien sin cuenta -- ver
+// getHypotheticalTodayRank para ese caso).
+export async function getTodayLeaderboard(uid, topN = 10) {
+  const all = await fetchTodayScores();
+  const top = all.slice(0, topN);
+  const myRank = uid ? (all.find((r) => r.uid === uid) ?? null) : null;
+  return { top, myRank };
 }
 
-// mismo calculo que getUserRank pero SIN cuenta guardada -- para mostrarle a
-// alguien que jugo sin loguearse donde quedaria si se registrara. no hace
-// falta login: scores es de lectura publica (ver firestore.rules).
-export async function getHypotheticalRank(score, totalTimeMs) {
-  if (!firebaseReady) return null;
+// mismo leaderboard de hoy, pero para alguien que jugo SIN cuenta: no hay
+// fila guardada que buscar, asi que calculamos donde quedaria comparando su
+// puntaje contra los que ya estan.
+export async function getHypotheticalTodayRank(score, totalTimeMs) {
+  const all = await fetchTodayScores();
   const myTime = typeof totalTimeMs === "number" ? totalTimeMs : Number.MAX_SAFE_INTEGER;
+  let rank = 1;
+  for (const row of all) {
+    if (row.totalPoints > score || (row.totalPoints === score && row.totalTimeMs < myTime)) rank++;
+  }
+  return { top: all.slice(0, 10), myRank: { rank, totalPoints: score } };
+}
 
-  const [aheadByScore, tiedButFaster] = await Promise.all([
-    getCountFromServer(query(collection(db, SCORES_COLLECTION), where("totalPoints", ">", score))),
-    getCountFromServer(
-      query(collection(db, SCORES_COLLECTION), where("totalPoints", "==", score), where("totalTimeMs", "<", myTime))
-    ),
-  ]);
-
-  return { rank: aheadByScore.data().count + tiedButFaster.data().count + 1, totalPoints: score };
+// leaderboard "historico": el mejor puntaje que CADA cuenta logro alguna vez
+// (bestPoints/bestTimeMs, ver api/submit-score.js), no las corridas de cada
+// dia por separado -- mucho mas liviano de guardar y de consultar, y sigue
+// respondiendo "cual es el mejor puntaje que se vio en el juego" sin necesidad de
+// borrar nada. limitado a 5 a proposito (pedido explicito: si guardar mas
+// historial es pesado, mejor simplificarlo a esto).
+export async function getAllTimeTop(topN = 5) {
+  if (!firebaseReady) return [];
+  const q = query(
+    collection(db, SCORES_COLLECTION),
+    orderBy("bestPoints", "desc"),
+    orderBy("bestTimeMs", "asc"),
+    limit(topN)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d, i) => {
+    const data = d.data();
+    return {
+      uid: d.id,
+      rank: i + 1,
+      displayName: data.displayName,
+      photoURL: data.photoURL,
+      totalPoints: data.bestPoints,
+      totalTimeMs: data.bestTimeMs,
+    };
+  });
 }

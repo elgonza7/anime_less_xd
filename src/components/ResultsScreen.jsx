@@ -4,9 +4,8 @@ import { CATEGORIES, ROUNDS_PER_CATEGORY } from "../game/categories";
 import {
   submitScore,
   markPlayedAnonymously,
-  getTopScores,
-  getUserRank,
-  getHypotheticalRank,
+  getTodayLeaderboard,
+  getHypotheticalTodayRank,
   AlreadyPlayedTodayError,
 } from "../services/leaderboardService";
 import { signInWithGoogle } from "../services/authService";
@@ -78,22 +77,19 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
   };
 
   // apenas se sabe que el puntaje de hoy quedo guardado (esta corrida o una
-  // anterior), traemos el leaderboard para mostrarlo aca mismo -- ya no hay
-  // que ir a otra pantalla a verlo. si todavia no te logueaste, igual
+  // anterior), traemos el leaderboard de HOY para mostrarlo aca mismo -- ya
+  // no hay que ir a otra pantalla a verlo. si todavia no te logueaste, igual
   // mostramos el top con una fila fantasma ("You'd be here"): el leaderboard
   // es publico, no hace falta cuenta para verlo.
   useEffect(() => {
     if (saveState === "saving") return;
     let alive = true;
-    if (user) {
-      Promise.all([getTopScores(5), getUserRank(user.uid)]).then(([top, myRank]) => {
-        if (alive && myRank) setLeaderboard({ top, myRank });
-      });
-    } else {
-      Promise.all([getTopScores(5), getHypotheticalRank(score, totalTimeMs)]).then(([top, myRank]) => {
-        if (alive) setLeaderboard({ top, myRank });
-      });
-    }
+    const load = user
+      ? getTodayLeaderboard(user.uid, 5)
+      : getHypotheticalTodayRank(score, totalTimeMs);
+    load.then((result) => {
+      if (alive) setLeaderboard(result);
+    });
     return () => {
       alive = false;
     };

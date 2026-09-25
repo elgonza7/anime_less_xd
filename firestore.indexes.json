@@ -15,6 +15,23 @@
         { "fieldPath": "totalPoints", "order": "ASCENDING" },
         { "fieldPath": "totalTimeMs", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastPlayedDate", "order": "ASCENDING" },
+        { "fieldPath": "totalPoints", "order": "DESCENDING" },
+        { "fieldPath": "totalTimeMs", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bestPoints", "order": "DESCENDING" },
+        { "fieldPath": "bestTimeMs", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
