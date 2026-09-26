@@ -19,13 +19,21 @@ export default function Navbar({
   onToggleGodMode,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   const handleSignIn = async () => {
+    setSigningIn(true);
     try {
       await signInWithGoogle();
     } catch (err) {
-      console.error("sign in fallo:", err);
-      alert("Couldn't sign in. Please try again.");
+      // "el usuario cerro el popup a proposito" no es un error real, no hace
+      // falta un alert por eso.
+      if (err.code !== "auth/popup-closed-by-user") {
+        console.error("sign in fallo:", err);
+        alert("Couldn't sign in. Please try again.");
+      }
+    } finally {
+      setSigningIn(false);
     }
   };
 
@@ -67,8 +75,12 @@ export default function Navbar({
       </button>
     </div>
   ) : (
-    <button onClick={handleSignIn} className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-black shadow">
-      Sign In
+    <button
+      onClick={handleSignIn}
+      disabled={signingIn}
+      className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-black shadow disabled:opacity-50"
+    >
+      {signingIn ? "Signing in..." : "Sign In"}
     </button>
   );
 
@@ -77,8 +89,11 @@ export default function Navbar({
       <div className="flex items-center justify-between gap-2">
         <button onClick={onGoHome} className="flex min-w-0 items-center gap-2 text-lg font-black">
           <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-          <span className="truncate">
-            Anime<span className="text-violet-500">Less</span>
+          <span className="flex min-w-0 flex-col items-start leading-tight">
+            <span className="truncate">
+              Anime<span className="text-violet-500">Less</span>
+            </span>
+            <span className="hidden text-[10px] font-normal normal-case opacity-50 sm:block">New matchups daily, resets 8am ART</span>
           </span>
         </button>
 

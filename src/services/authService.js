@@ -1,18 +1,24 @@
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider, firebaseReady } from "../firebase/client";
 
-// errores de signInWithPopup que NO son "el usuario se arrepintio": son el
-// navegador/entorno rechazando el popup en si (Safari con "prevent cross-site
-// tracking", navegadores in-app de Instagram/TikTok, terceros bloqueando
-// cookies, etc). en esos casos probamos con redirect en vez de solo fallar
-// -- por eso a un amigo le funcionaba y a otro no, dependia del navegador.
-const POPUP_FALLBACK_CODES = new Set([
-  "auth/popup-blocked",
-  "auth/operation-not-supported-in-this-environment",
-  "auth/popup-closed-by-user",
-  "auth/cancelled-popup-request",
-  "auth/web-storage-unsupported",
-]);
+// si el popup falla por CUALQUIER motivo que no sea "el usuario lo cerro a
+// proposito", probamos con redirect en vez de solo fallar. Antes esto era una
+// lista fija de codigos conocidos (popup-blocked, etc), pero un amigo se
+// encontro con el error en Firefox de escritorio con un codigo que no estaba
+// en esa lista (probablemente Enhanced Tracking Protection de Firefox
+// bloqueando el storage entre el popup y la pagina principal, algo conocido
+// de Firebase Auth + Firefox) -- mientras a otro amigo en el mismo navegador
+// le funcionaba bien. En vez de tratar de adivinar cada codigo de error
+// posible por navegador, ahora el fallback es la regla y el "no, dejalo
+// fallar" es la excepcion.
+const USER_CANCELLED_CODES = new Set(["auth/popup-closed-by-user", "auth/cancelled-popup-request"]);
+
+// si ya hay un intento de login en curso, cualquier click extra (doble click,
+// login-dijo-que-no-y-volvio-a-tocar, etc) se engancha a ESE mismo intento en
+// vez de lanzar uno nuevo -- lanzar signInWithPopup de nuevo mientras el
+// anterior sigue abierto es lo que produce "auth/cancelled-popup-request" y
+// deja todo en un estado raro ("se buguea").
+let inFlightSignIn = null;
 
 export function subscribeToAuth(callback) {
   if (!firebaseReady) {
@@ -45,10 +51,7 @@ function isMobileBrowser() {
   return /Android|iPhone|iPad|iPod|Mobile|IEMobile/i.test(navigator.userAgent);
 }
 
-export async function signInWithGoogle() {
-  if (!firebaseReady) {
-    throw new Error("Firebase no esta configurado todavia. Falta el .env");
-  }
+async function doSignIn() {
   if (isMobileBrowser()) {
     await signInWithRedirect(auth, googleProvider);
     return null; // la pagina se recarga; completeRedirectSignIn() toma la posta al volver
@@ -57,12 +60,24 @@ export async function signInWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (err) {
-    if (POPUP_FALLBACK_CODES.has(err.code)) {
+    if (!USER_CANCELLED_CODES.has(err.code)) {
       await signInWithRedirect(auth, googleProvider);
       return null;
     }
     throw err;
   }
+}
+
+export function signInWithGoogle() {
+  if (!firebaseReady) {
+    return Promise.reject(new Error("Firebase no esta configurado todavia. Falta el .env"));
+  }
+  if (inFlightSignIn) return inFlightSignIn;
+
+  inFlightSignIn = doSignIn().finally(() => {
+    inFlightSignIn = null;
+  });
+  return inFlightSignIn;
 }
 
 export async function signOutUser() {
