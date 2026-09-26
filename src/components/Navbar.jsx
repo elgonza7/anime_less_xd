@@ -26,12 +26,10 @@ export default function Navbar({
     try {
       await signInWithGoogle();
     } catch (err) {
-      // "el usuario cerro el popup a proposito" no es un error real, no hace
-      // falta un alert por eso.
-      if (err.code !== "auth/popup-closed-by-user") {
-        console.error("sign in fallo:", err);
-        alert("Couldn't sign in. Please try again.");
-      }
+      // si esto tira, ya intento popup Y redirect y los dos fallaron (ver
+      // authService.js) -- ahi si es un error real.
+      console.error("sign in fallo:", err);
+      alert("Couldn't sign in. Please try again.");
     } finally {
       setSigningIn(false);
     }

@@ -1,17 +1,16 @@
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider, firebaseReady } from "../firebase/client";
 
-// si el popup falla por CUALQUIER motivo que no sea "el usuario lo cerro a
-// proposito", probamos con redirect en vez de solo fallar. Antes esto era una
-// lista fija de codigos conocidos (popup-blocked, etc), pero un amigo se
-// encontro con el error en Firefox de escritorio con un codigo que no estaba
-// en esa lista (probablemente Enhanced Tracking Protection de Firefox
-// bloqueando el storage entre el popup y la pagina principal, algo conocido
-// de Firebase Auth + Firefox) -- mientras a otro amigo en el mismo navegador
-// le funcionaba bien. En vez de tratar de adivinar cada codigo de error
-// posible por navegador, ahora el fallback es la regla y el "no, dejalo
-// fallar" es la excepcion.
-const USER_CANCELLED_CODES = new Set(["auth/popup-closed-by-user", "auth/cancelled-popup-request"]);
+// si el popup falla, SIEMPRE probamos con redirect antes de rendirnos --
+// incluso para "auth/popup-closed-by-user". Suena raro (¿no significa eso
+// que el usuario cerro el popup a proposito?), pero ese codigo es un falso
+// positivo muy conocido de Firebase Auth en navegadores con Cross-Origin-
+// -Opener-Policy mas estricta (Chrome/Opera/Edge recientes): el login
+// adentro del popup puede haber terminado bien, pero el navegador le impide
+// a Firebase confirmarlo, y termina reportando "cerrado por el usuario" de
+// todos modos. Habiamos tratado ese codigo como cancelacion real y eso fue
+// justo lo que rompio el login en Opera (andaba antes de ese cambio). Mas
+// vale un redirect de mas que un login roto en silencio.
 
 // si ya hay un intento de login en curso, cualquier click extra (doble click,
 // login-dijo-que-no-y-volvio-a-tocar, etc) se engancha a ESE mismo intento en
@@ -59,12 +58,9 @@ async function doSignIn() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (err) {
-    if (!USER_CANCELLED_CODES.has(err.code)) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-    throw err;
+  } catch {
+    await signInWithRedirect(auth, googleProvider);
+    return null;
   }
 }
 
