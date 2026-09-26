@@ -8,7 +8,7 @@ import {
   getHypotheticalTodayRank,
   AlreadyPlayedTodayError,
 } from "../services/leaderboardService";
-import { signInWithGoogle } from "../services/authService";
+import { signInWithGoogle, isUserCancelled } from "../services/authService";
 import { playFinale } from "../game/sounds";
 import { markLastResultSaved } from "../game/dailyResult";
 import RankReveal from "./RankReveal";
@@ -103,7 +103,6 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
     setSignInError(null);
     try {
       const loggedInUser = await signInWithGoogle();
-      if (!loggedInUser) return; // cayo al fallback de redirect, la pagina se recarga sola
       setSaveState("saving");
       await submitScore(loggedInUser, score, totalTimeMs);
       markLastResultSaved();
@@ -114,9 +113,15 @@ export default function ResultsScreen({ score, totalTimeMs, user, onSaved, onGoT
         markLastResultSaved();
         setSaveState("already-played");
         onSaved?.();
+      } else if (isUserCancelled(err)) {
+        setSaveState("no-account");
       } else {
         console.error("couldn't sign in / save score:", err);
-        setSignInError(err.message || "Something went wrong, try again.");
+        setSignInError(
+          err?.code === "auth/popup-blocked"
+            ? "Your browser blocked the sign-in popup. Allow popups for this site and try again."
+            : err.message || "Something went wrong, try again."
+        );
         setSaveState("no-account");
       }
     } finally {

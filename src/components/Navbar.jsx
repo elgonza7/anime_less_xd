@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { signInWithGoogle, signOutUser } from "../services/authService";
+import { signInWithGoogle, signOutUser, isUserCancelled } from "../services/authService";
 
 // el menu de arriba tenia demasiados items (modo dios, mute, tema, leaderboard,
 // perfil/login) para entrar en una fila en pantallas de celular sin desbordar
@@ -26,10 +26,13 @@ export default function Navbar({
     try {
       await signInWithGoogle();
     } catch (err) {
-      // si esto tira, ya intento popup Y redirect y los dos fallaron (ver
-      // authService.js) -- ahi si es un error real.
+      if (isUserCancelled(err)) return;
       console.error("sign in fallo:", err);
-      alert("Couldn't sign in. Please try again.");
+      alert(
+        err?.code === "auth/popup-blocked"
+          ? "Your browser blocked the sign-in popup. Allow popups for this site and try again."
+          : `Couldn't sign in (${err?.code || "unknown error"}). Please try again.`
+      );
     } finally {
       setSigningIn(false);
     }
