@@ -3,6 +3,9 @@ const BASE_URL = "https://www.googleapis.com/youtube/v3";
 
 const cache = new Map();
 
+const BAD_RESULT =
+  /- Topic\b|\bcover\b|cosplay|踊ってみた|\bdance\b|\bAMV\b|\bMAD\b|\bremix\b|\breaction\b|trailer|\bPV\b.*(película|movie)|película|1 ?hour|lyrics? ?AMV|karaoke|piano|guitar/i;
+
 // trae vistas en vivo (esto sale 1 unit de cuota, no rompe el limite diario ni de cerca)
 export async function fetchVideoStats(videoId) {
   if (cache.has(videoId)) return cache.get(videoId);
@@ -41,12 +44,15 @@ export async function searchOfficialVideo(queries) {
   const list = Array.isArray(queries) ? queries : [queries];
 
   for (const query of list) {
-    const url = `${BASE_URL}/search?part=snippet&type=video&maxResults=1&q=${encodeURIComponent(query)}&key=${API_KEY}`;
+    // pedimos 5 (cuesta lo mismo que 1) para poder saltear lo que no sirve:
+    // covers, bailes, AMVs, trailers de peliculas y los videos "- Topic"
+    // (audio autogenerado, con vistas que no se comparan con el video real).
+    const url = `${BASE_URL}/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(query)}&key=${API_KEY}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`YouTube search respondio ${res.status}`);
 
     const json = await res.json();
-    const item = json.items?.[0];
+    const item = json.items?.find((it) => !BAD_RESULT.test(`${it.snippet.title} ${it.snippet.channelTitle}`));
     if (!item) continue;
 
     return {
