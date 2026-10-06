@@ -32,21 +32,29 @@ export async function fetchVideoStats(videoId) {
 // (bastante caro), por eso solo se llama una vez por opening -- ver
 // services/openingsCacheService.js, que guarda el resultado en Firestore
 // para que nadie mas tenga que volver a buscarlo.
-export async function searchOfficialVideo(query) {
+// acepta una query o una lista de queries de mas especifica a mas laxa: las
+// queries con muchas comillas (artista + sello) a veces no devuelven nada en
+// YouTube, y en ese caso probamos la siguiente en vez de romper la ronda.
+// solo se gasta cuota extra (100 units) cuando la anterior no encontro nada.
+export async function searchOfficialVideo(queries) {
   if (!API_KEY) throw new Error("Falta VITE_YOUTUBE_API_KEY en el .env");
+  const list = Array.isArray(queries) ? queries : [queries];
 
-  const url = `${BASE_URL}/search?part=snippet&type=video&maxResults=1&q=${encodeURIComponent(query)}&key=${API_KEY}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`YouTube search respondio ${res.status}`);
+  for (const query of list) {
+    const url = `${BASE_URL}/search?part=snippet&type=video&maxResults=1&q=${encodeURIComponent(query)}&key=${API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`YouTube search respondio ${res.status}`);
 
-  const json = await res.json();
-  const item = json.items?.[0];
-  if (!item) throw new Error(`YouTube no encontro nada para "${query}"`);
+    const json = await res.json();
+    const item = json.items?.[0];
+    if (!item) continue;
 
-  return {
-    videoId: item.id.videoId,
-    resolvedTitle: item.snippet.title,
-    channelTitle: item.snippet.channelTitle,
-    thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
-  };
+    return {
+      videoId: item.id.videoId,
+      resolvedTitle: item.snippet.title,
+      channelTitle: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+    };
+  }
+  throw new Error(`YouTube no encontro nada para "${list[0]}"`);
 }

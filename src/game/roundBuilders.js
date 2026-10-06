@@ -69,21 +69,33 @@ export async function fetchFandomEntry(usedKeys, seedContext) {
 export async function fetchOpeningEntry(usedKeys, seedContext) {
   const pool = unusedPool(OPENINGS_CATALOG, usedKeys).filter((o) => !usedKeys.has(o.key));
   const list = pool.length > 0 ? pool : OPENINGS_CATALOG;
-  const catalogEntry = list[seededRandomInt(list.length, seedContext)];
 
-  // resolveOpening solo pega a youtube "search" (caro) la primera vez que se
-  // pide ese opening puntual; despues queda cacheado en Firestore para siempre.
-  const opening = await resolveOpening(catalogEntry);
-  const stats = await fetchVideoStats(opening.videoId);
+  // si un opening puntual falla (YouTube no lo encuentra, cuota, red), no
+  // rompemos toda la ronda: probamos otro del catalogo. el intento entra en
+  // la seed, asi sigue siendo reproducible para todos el mismo dia.
+  let lastError;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const catalogEntry = list[seededRandomInt(list.length, seedContext, attempt)];
+    try {
+      // resolveOpening solo pega a youtube "search" (caro) la primera vez que se
+      // pide ese opening puntual; despues queda cacheado en Firestore para siempre.
+      const opening = await resolveOpening(catalogEntry);
+      const stats = await fetchVideoStats(opening.videoId);
 
-  return {
-    itemKey: catalogEntry.key,
-    label: `${opening.anime} — ${opening.opening}`,
-    imageUrl: stats.thumbnail,
-    value: stats.viewCount,
-    statIcon: "▶️",
-    statUnit: " views",
-  };
+      return {
+        itemKey: catalogEntry.key,
+        label: `${opening.anime} — ${opening.opening}`,
+        imageUrl: stats.thumbnail,
+        value: stats.viewCount,
+        statIcon: "▶️",
+        statUnit: " views",
+      };
+    } catch (err) {
+      console.warn(`opening "${catalogEntry.key}" fallo, pruebo otro:`, err.message);
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 export async function fetchEpisodeEntry(usedKeys, seedContext) {

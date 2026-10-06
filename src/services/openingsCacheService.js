@@ -26,7 +26,11 @@ export async function resolveOpening(catalogEntry) {
     }
   }
 
-  const found = await searchOfficialVideo(catalogEntry.query);
+  const found = await searchOfficialVideo([
+    catalogEntry.query,
+    catalogEntry.query.replace(/"/g, ""),
+    `${catalogEntry.anime} ${catalogEntry.opening} opening`,
+  ]);
   const resolved = {
     anime: catalogEntry.anime,
     opening: catalogEntry.opening,
